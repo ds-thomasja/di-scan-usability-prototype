@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lightning_core_ui/lightning_core_ui.dart';
 
@@ -14,6 +15,10 @@ import 'auth_state.dart';
 /// [AppRoutes.home]. The router's redirect would do the same on its own
 /// (via `refreshListenable`), but navigating explicitly keeps the flow
 /// obvious.
+///
+/// The "stay unlocked" checkbox is on by default: the gate is a deterrent for
+/// a shared link, not something a tester should have to clear on every
+/// reload.
 class AuthGate extends StatefulWidget {
   /// Creates the password gate.
   const AuthGate({super.key});
@@ -35,6 +40,9 @@ class _AuthGateState extends State<AuthGate> {
 
   bool _hasError = false;
 
+  /// Whether a successful unlock should survive a reload. Defaults to on.
+  bool _remember = true;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -52,7 +60,10 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
 
-    if (AuthState.instance.tryUnlock(attempt)) {
+    if (AuthState.instance.tryUnlock(attempt, remember: _remember)) {
+      // Hands the entry to the browser's password manager before the field
+      // leaves the tree, which is what prompts the "save password?" offer.
+      TextInput.finishAutofillContext();
       context.go(AppRoutes.home);
       return;
     }
@@ -98,18 +109,24 @@ class _AuthGateState extends State<AuthGate> {
                         style: tokens.text.textSmStrong,
                       ),
                       SizedBox(height: tokens.spacing.component.xxs),
-                      Semantics(
-                        label: 'Prototype password',
-                        textField: true,
-                        child: DSPasswordField(
-                          controller: _controller,
-                          focusNode: _fieldFocusNode,
-                          hintText: 'Enter password',
-                          hasError: _hasError,
-                          autofocus: true,
-                          autofillHints: const [AutofillHints.password],
-                          onChanged: (_) => _clearError(),
-                          onSubmitted: (_) => _submit(),
+                      // Flutter web only exposes a text field to the
+                      // browser as a fillable form control when it sits in an
+                      // `AutofillGroup` and declares `autofillHints` — both
+                      // are prerequisites for password-manager autofill.
+                      AutofillGroup(
+                        child: Semantics(
+                          label: 'Prototype password',
+                          textField: true,
+                          child: DSPasswordField(
+                            controller: _controller,
+                            focusNode: _fieldFocusNode,
+                            hintText: 'Enter password',
+                            hasError: _hasError,
+                            autofocus: true,
+                            autofillHints: const [AutofillHints.password],
+                            onChanged: (_) => _clearError(),
+                            onSubmitted: (_) => _submit(),
+                          ),
                         ),
                       ),
                       if (_hasError) ...[
@@ -124,6 +141,13 @@ class _AuthGateState extends State<AuthGate> {
                           ),
                         ),
                       ],
+                      SizedBox(height: tokens.spacing.component.s),
+                      DSCheckbox(
+                        label: 'Stay unlocked on this browser',
+                        value: _remember,
+                        onChanged: (bool value) =>
+                            setState(() => _remember = value),
+                      ),
                       SizedBox(height: tokens.spacing.layout.s),
                       DSButton.primary(
                         buttonText: 'Unlock',
