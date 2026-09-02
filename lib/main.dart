@@ -29,6 +29,23 @@ class DIScanApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp.router(
         title: 'DI Scan',
         debugShowCheckedModeBanner: false,
+        // Every route in `appRouter` uses a plain `builder:`, which go_router
+        // wraps in a `MaterialPage` animated per the ambient
+        // `pageTransitionsTheme`. Without this override, clicking a sidebar
+        // item or a table row plays the platform's default slide/fade page
+        // transition; `_NoTransitionsBuilder` makes navigation instant.
+        theme: ThemeData(
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: _NoTransitionsBuilder(),
+              TargetPlatform.iOS: _NoTransitionsBuilder(),
+              TargetPlatform.linux: _NoTransitionsBuilder(),
+              TargetPlatform.macOS: _NoTransitionsBuilder(),
+              TargetPlatform.windows: _NoTransitionsBuilder(),
+              TargetPlatform.fuchsia: _NoTransitionsBuilder(),
+            },
+          ),
+        ),
         routerConfig: appRouter,
         // Not `const`: `DSCoreUILocalizationDelegates.delegate` is a static
         // field, not a compile-time constant.
@@ -50,4 +67,23 @@ class DIScanApp extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// A [PageTransitionsBuilder] that swaps pages with no animation.
+///
+/// Used for every platform in [DIScanApp]'s [PageTransitionsTheme] so
+/// clicking a sidebar item or a table row navigates instantly instead of
+/// playing the platform's default slide/fade page transition.
+class _NoTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      child;
 }
