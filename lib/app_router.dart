@@ -6,6 +6,8 @@ import 'auth/auth_state.dart';
 import 'pages/home_page.dart';
 import 'pages/patient_detail_page.dart';
 import 'pages/patient_list_page.dart';
+import 'pages/scan_loading_page.dart';
+import 'pages/switch_prototype_page.dart';
 import 'pages/treatment_detail_page.dart';
 import 'pages/treatment_list_page.dart';
 
@@ -31,6 +33,14 @@ abstract final class AppRoutes {
 
   /// A single treatment's detail page. Append `/<id>`.
   static const String treatmentDetail = '/treatments/:id';
+
+  /// The wait after picking "Status scan" for a device. Pushed on top of the
+  /// page the scan was started from, so that "Cancel loading" can return
+  /// there.
+  static const String scanLoading = '/scan/loading';
+
+  /// The signpost the status-scan flow ends on.
+  static const String switchPrototype = '/switch-prototype';
 
   /// Builds the concrete path for a patient detail page.
   static String patient(String id) => '/patients/$id';
@@ -96,6 +106,18 @@ final GoRouter appRouter = GoRouter(
               TreatmentDetailPage(treatmentId: state.pathParameters['id']!),
         ),
       ],
+    ),
+    // Both of these are full-screen: they replace the app chrome rather than
+    // render inside it, so neither is nested under a content route.
+    GoRoute(
+      path: AppRoutes.scanLoading,
+      name: 'scanLoading',
+      builder: (context, state) => const ScanLoadingPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.switchPrototype,
+      name: 'switchPrototype',
+      builder: (context, state) => const SwitchPrototypePage(),
     ),
   ],
 );

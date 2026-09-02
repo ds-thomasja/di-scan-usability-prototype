@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lightning_core_ui/lightning_core_ui.dart';
 
+import '../app_router.dart';
 import '../components/device_card/device_card.dart';
 import '../components/device_modal/device_modal.dart';
 import '../data/mock_data.dart';
@@ -31,15 +33,30 @@ const String _showSelectableOnlyLabel = 'Selectable devices only';
 /// (`lib/components/device_modal`), whose `deviceDetails` mode is the
 /// detail view.
 ///
-/// The detail view is where this click-through prototype stops: there is no
-/// scan acquisition behind its cards. The returned future completes with the
-/// index into [MockData.devices] of the device whose detail view was open when
-/// the modal was closed, or null when it was closed from the list.
-Future<int?> showCaptureScanModal(BuildContext context) =>
-    showDSModalDialog<int?>(
-      context: context,
-      builder: (context, pop) => _CaptureScanModal(pop: pop),
-    );
+/// One of the detail view's cards continues the flow: "Status scan" closes
+/// the modal and pushes [AppRoutes.scanLoading]. The others are dead ends —
+/// see [_buildDetailsView].
+///
+/// The returned future completes once the modal has closed and any flow it
+/// started has been navigated to.
+Future<void> showCaptureScanModal(BuildContext context) async {
+  final DeviceDetailAction? action =
+      await showDSModalDialog<DeviceDetailAction?>(
+    context: context,
+    builder: (context, pop) => _CaptureScanModal(pop: pop),
+  );
+
+  // [context] here is the caller's — the page that opened the modal, which is
+  // still on screen unless something navigated away while it was open.
+  if (action == null || !context.mounted) return;
+
+  switch (action) {
+    // Pushed rather than gone to, so that the loading page's "Cancel loading"
+    // has this page to return to.
+    case DeviceDetailAction.statusScan:
+      context.push(AppRoutes.scanLoading);
+  }
+}
 
 /// Holds which of the modal's two views is on screen, and the "All devices"
 /// toggle of the list view, for the duration of the modal.
@@ -51,8 +68,8 @@ Future<int?> showCaptureScanModal(BuildContext context) =>
 class _CaptureScanModal extends StatefulWidget {
   const _CaptureScanModal({required this.pop});
 
-  /// Closes the modal, optionally with the index of the shown device.
-  final Pop<int?> pop;
+  /// Closes the modal, optionally with the flow the tester picked out of it.
+  final Pop<DeviceDetailAction?> pop;
 
   @override
   State<_CaptureScanModal> createState() => _CaptureScanModalState();
@@ -99,8 +116,13 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
 
   /// The detail view of [index]'s device, per its Figma node.
   ///
-  /// Its cards are deliberately left non-interactive: they are the end of this
-  /// prototype's "Capture scan" path, and there is no frame behind them.
+  /// Every card here is tappable, but only the ones carrying a
+  /// [DeviceDetailItem.action] lead anywhere — today that is the scanner's
+  /// "Status scan". [DeviceModal] takes one callback for the whole list
+  /// rather than one per card, and the alternative to a swallowed tap would
+  /// be a card the design shows as a card but that does not even respond to
+  /// hover. Same call as the in-card notification link below: a dead end that
+  /// looks like the design beats one that reads as broken.
   Widget _buildDetailsView(int index) {
     final device = MockData.devices[index];
 
@@ -126,7 +148,11 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
             thumbnail: Image.asset(item.assetPath, fit: BoxFit.contain),
           ),
       ],
-      onClose: () => widget.pop(index),
+      onOtherDeviceSelected: (item) {
+        final action = device.detailItems[item].action;
+        if (action != null) widget.pop(action);
+      },
+      onClose: widget.pop,
       onSwitchDevice: () => setState(() => _openedIndex = null),
     );
   }

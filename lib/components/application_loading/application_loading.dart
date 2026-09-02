@@ -1,0 +1,363 @@
+import 'package:flutter/material.dart';
+import 'package:lightning_core_ui/lightning_core_ui.dart';
+
+/// The full-screen "Application loading" state shown while a scan is being
+/// prepared and opened.
+///
+/// Mirrors the Figma "Application loading" screen (node 5033:19060), composed
+/// top to bottom of:
+/// 1. an indeterminate DS progress circle ([DSProgressCircleFilled]) with the
+///    scanner device illustration in its centre,
+/// 2. a heading + subtext block,
+/// 3. an optional info [DSInlineNotification] explaining a slow load
+///    ([notification]),
+/// 4. an optional [DSContainer] holding a [DSTimelineStepper] ([timeline],
+///    [steps]),
+/// 5. a tertiary "Cancel loading" [DSButton] wired to [onCancel].
+///
+/// The whole block is centred and scrolls when the available height is smaller
+/// than its content, so the screen degrades gracefully on short viewports.
+///
+/// Vendored from `ds-thomasja/di-scan` and diverged here — see this
+/// prototype's README. [appReady] and [steps] are the two additions; the rest
+/// of the component is upstream's.
+class ApplicationLoading extends StatelessWidget {
+  /// Creates the "Application loading" screen.
+  const ApplicationLoading({
+    super.key,
+    this.appReady = true,
+    this.subline = 'This may take a few seconds',
+    this.notification = true,
+    this.timeline = true,
+    this.steps,
+    this.onCancel,
+  });
+
+  /// Whether the loading application has got far enough to show its own
+  /// loading screen.
+  ///
+  /// The Figma component's `appReady` variant (node `40601:127880`): while
+  /// this is false the screen is nothing but the standard background and a
+  /// centred [DSProgressCircle.medium] — the browser-level wait before the
+  /// application itself has painted anything. Everything else this component
+  /// renders belongs to the `true` state.
+  final bool appReady;
+
+  /// The subtext shown under the "Loading scan..." heading. In the real flow
+  /// this is switched between the elapsed-time copy described in this
+  /// component's spec (e.g. "This only takes a moment" → "Ready in about 30
+  /// seconds").
+  final String subline;
+
+  /// Whether the "Taking a little longer than usual" inline notification is
+  /// shown. In the real flow this is switched on once the load exceeds the
+  /// expected duration.
+  final bool notification;
+
+  /// Whether the timeline stepper card describing the loading phases is shown.
+  final bool timeline;
+
+  /// The steps of that card, or null for upstream's fixed three
+  /// (Infrastructure / Scan data / Application, the first one active).
+  ///
+  /// Upstream hardcodes those three, which its own spec calls out as a known
+  /// limitation: the steps are meant to be driven by the events they report
+  /// on, each cycling future → active → completed. This prototype needs
+  /// exactly that — Figma node `40184-47635` shows a *two*-step card, and its
+  /// two steps advance as the load proceeds — so the list is a parameter here.
+  final List<DSTimelineStep>? steps;
+
+  /// Called when the user presses "Cancel loading".
+  ///
+  /// The button stays enabled when this is null; pressing it is then a no-op.
+  final VoidCallback? onCancel;
+
+  /// The maximum width of the centred text/notification column, per Figma.
+  static const double _contentMaxWidth = 512;
+
+  /// The maximum width of the timeline stepper card, per Figma.
+  static const double _timelineMaxWidth = 400;
+
+  /// Height bound handed to [DSTimelineStepper] when this widget itself is laid
+  /// out with an unbounded height. See [_buildContent] for why the stepper
+  /// needs a bounded height at all.
+  static const double _timelineFallbackMaxHeight = 1024;
+
+  /// Duration and easing for the notification/timeline show-hide transition.
+  /// [Curves.easeInOutSine] has no sharp acceleration at either end — of the
+  /// standard easing curves it reads as the softest/gentlest, unlike the
+  /// Figma spec's sharper cubic-bezier(0.4, 0.0, 0.2, 1). Duration is nudged
+  /// up slightly from the spec's 200ms to 320ms so the softer curve has room
+  /// to read as gentle rather than merely slow.
+  static const Duration _transitionDuration = Duration(milliseconds: 320);
+  static const Curve _transitionCurve = Curves.easeInOutSine;
+
+  /// Fades and resizes [child] in/out instead of letting it appear/disappear
+  /// with an instant height jump. Kept to a single fade+size pairing (no
+  /// bounce, overshoot, or staggering) so the motion reads as a subtle easing
+  /// of the layout rather than a standalone animation.
+  ///
+  /// [child] is wrapped in a [Center] before entering [SizeTransition]:
+  /// `SizeTransition` always left-aligns its child on the cross axis when
+  /// animating vertically (its `axisAlignment` only affects the main axis),
+  /// so without it the notification/timeline content would hug the left
+  /// edge instead of staying centred like the rest of the screen.
+  static Widget _animatedSection({required bool visible, required Widget child}) {
+    return AnimatedSwitcher(
+      duration: _transitionDuration,
+      switchInCurve: _transitionCurve,
+      switchOutCurve: _transitionCurve,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SizeTransition(sizeFactor: animation, child: Center(child: child)),
+      ),
+      child: visible ? child : const SizedBox.shrink(key: ValueKey('hidden')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DSTokens.of(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(tokens.border.radius.standard),
+      child: ColoredBox(
+        color: tokens.background.standard,
+        child: appReady
+            // Centre the content while there is room for it, and fall back to
+            // scrolling once the viewport gets shorter than the content.
+            ? LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  padding:
+                      EdgeInsets.symmetric(vertical: tokens.spacing.layout.m),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.hasBoundedHeight
+                          ? constraints.maxHeight - 2 * tokens.spacing.layout.m
+                          : 0,
+                    ),
+                    child: Center(
+                      child: _buildContent(
+                        context,
+                        tokens,
+                        viewportHeight: constraints.hasBoundedHeight
+                            ? constraints.maxHeight
+                            : _timelineFallbackMaxHeight,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            // No scroll view and no minimum height: a 24px circle fits any
+            // viewport this prototype runs in.
+            : const Center(child: DSProgressCircle.medium()),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    DSTokensData tokens, {
+    required double viewportHeight,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // The DS "Progress circle filled": grey track, blue indeterminate arc
+        // and the device illustration inside. The asset is pre-composed onto a
+        // square canvas because the DS widget fits its image with
+        // `BoxFit.cover` and documents that it "should be 396x396" — the
+        // transparent padding reproduces the Figma inset of the device child.
+        DSProgressCircleFilled.withImage(
+          image: const AssetImage(
+            'assets/images/primescan_device_progress_circle.png',
+          ),
+        ),
+        SizedBox(height: tokens.spacing.layout.m),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: Padding(
+            padding:
+                EdgeInsets.symmetric(horizontal: tokens.spacing.component.l),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Loading scan...',
+                  textAlign: TextAlign.center,
+                  style: tokens.text.heading3xl
+                      .copyWith(color: tokens.text.standard),
+                ),
+                SizedBox(height: tokens.spacing.component.xs),
+                _AnimatedSubline(
+                  text: subline,
+                  style: tokens.text.textBase
+                      .copyWith(color: tokens.text.subdued),
+                  maxWidth: _contentMaxWidth - 2 * tokens.spacing.component.l,
+                ),
+              ],
+            ),
+          ),
+        ),
+        _animatedSection(
+          visible: notification,
+          child: Column(
+            key: const ValueKey('notification'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: tokens.spacing.layout.m),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: tokens.spacing.component.l),
+                  child: DSInlineNotification(
+                    notificationType: DSNotificationType.information,
+                    title: 'Taking a little longer than usual',
+                    message: 'This can take several minutes. Please stay on '
+                        'this screen and do not refresh.',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _animatedSection(
+          visible: timeline,
+          child: Column(
+            key: const ValueKey('timeline'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: tokens.spacing.layout.m),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _timelineMaxWidth),
+                child: DSContainer(
+                  padding: EdgeInsets.all(tokens.spacing.layout.m),
+                  // DSTimelineStepper is a shrink-wrapping scroll view, which
+                  // cannot be laid out with an unbounded height (its sliver
+                  // geometry ends up with a NaN cache extent). The
+                  // surrounding scroll view provides exactly that, so cap the
+                  // stepper at the viewport height — well above the height of
+                  // three collapsed steps, so it still shrink-wraps to its
+                  // content.
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: viewportHeight),
+                    // The steps are progress read-outs, not interactive
+                    // disclosures: `enabled: false` stops them expanding
+                    // while `isReadOnly: true` keeps the enabled (non-greyed)
+                    // styling. A caller passing its own [steps] is expected
+                    // to do the same — see [loadingStep].
+                    child: DSTimelineStepper(
+                      steps: steps ??
+                          [
+                            loadingStep(
+                              DSTimelineStepType.active,
+                              'Preparing workspace…',
+                            ),
+                            loadingStep(
+                              DSTimelineStepType.future,
+                              'Fetch scan data',
+                            ),
+                            loadingStep(
+                              DSTimelineStepType.future,
+                              'Start application',
+                            ),
+                          ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: tokens.spacing.layout.m),
+        DSButton.tertiary(
+          buttonText: 'Cancel loading',
+          onPressed: () => onCancel?.call(),
+        ),
+      ],
+    );
+  }
+}
+
+/// Builds one step of [ApplicationLoading.steps], styled the way the loading
+/// screen's steps are: a progress read-out rather than an interactive
+/// disclosure.
+///
+/// `enabled: false` stops the step expanding when tapped, and
+/// `isReadOnly: true` keeps the enabled (non-greyed) styling that `false`
+/// would otherwise take away. Exposed so a caller driving its own steps gets
+/// those two flags right without repeating the reasoning.
+DSTimelineStep loadingStep(DSTimelineStepType type, String headline) =>
+    DSTimelineStep(
+      type: type,
+      headline: headline,
+      enabled: false,
+      isReadOnly: true,
+    );
+
+/// Cross-fades [text] in place when it changes, only animating the
+/// surrounding box's height if the incoming text wraps to a different number
+/// of lines than the text it replaces. A same-line-count swap (e.g. one
+/// elapsed-time string to another) stays at a fixed height and only fades;
+/// a line-count change also resizes, matching [ApplicationLoading]'s other
+/// show/hide transitions.
+class _AnimatedSubline extends StatefulWidget {
+  const _AnimatedSubline({
+    required this.text,
+    required this.style,
+    required this.maxWidth,
+  });
+
+  final String text;
+  final TextStyle style;
+  final double maxWidth;
+
+  @override
+  State<_AnimatedSubline> createState() => _AnimatedSublineState();
+}
+
+class _AnimatedSublineState extends State<_AnimatedSubline> {
+  bool _animateHeight = false;
+
+  @override
+  void didUpdateWidget(_AnimatedSubline oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _animateHeight = _lineCount(oldWidget.text) != _lineCount(widget.text);
+    }
+  }
+
+  int _lineCount(String text) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: widget.style),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout(maxWidth: widget.maxWidth);
+    final lineCount = painter.computeLineMetrics().length;
+    painter.dispose();
+    return lineCount;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: ApplicationLoading._transitionDuration,
+      switchInCurve: ApplicationLoading._transitionCurve,
+      switchOutCurve: ApplicationLoading._transitionCurve,
+      transitionBuilder: (child, animation) {
+        final fade = FadeTransition(opacity: animation, child: child);
+        return _animateHeight
+            ? SizeTransition(sizeFactor: animation, child: Center(child: fade))
+            : fade;
+      },
+      child: Text(
+        widget.text,
+        key: ValueKey(widget.text),
+        textAlign: TextAlign.center,
+        style: widget.style,
+      ),
+    );
+  }
+}

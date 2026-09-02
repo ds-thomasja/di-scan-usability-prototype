@@ -16,13 +16,17 @@ security, just a casual-visitor deterrent while the link is shared for testing).
 `lib/components/device_card/` and `lib/components/device_modal/` are copies of
 the shared Flutter components from
 [`ds-thomasja/overarching`](https://github.com/ds-thomasja/overarching/tree/main/lib/components),
-vendored because that repo is not a publishable package. Change them upstream
-and re-copy them from `main` rather than editing them here; they are built
-against `lightning_core_ui` v51, this prototype pins v52.
+and `lib/components/application_loading/` is a copy of the same-named component
+from
+[`ds-thomasja/di-scan`](https://github.com/ds-thomasja/di-scan/tree/main/lib/components/application_loading);
+all three are vendored because neither repo is a publishable package. Change
+them upstream and re-copy them from `main` rather than editing them here; they
+are built against `lightning_core_ui` v51, this prototype pins v52.
 
 **They have diverged.** The changes below were made here to render the
-"Select device" modal's second state (see `showCaptureScanModal` below), and
-have to be re-applied — or, better, ported upstream — after any re-copy:
+"Select device" modal's second state and the status-scan load (see
+`showCaptureScanModal` below), and have to be re-applied — or, better, ported
+upstream — after any re-copy:
 
 - `DeviceCardStatus` gained `inUse` and `warning` (information- and
   warning-styled tags), and `DeviceCard` gained a `statusLabel` that overrides
@@ -90,6 +94,26 @@ have to be re-applied — or, better, ported upstream — after any re-copy:
   one body with the other instead of reconciling them child by child — both
   modes build the same `_Stack`, and without the key the details image would
   never be freshly mounted and so would never dissolve.
+- `ApplicationLoading` gained `appReady`. The Figma component has an
+  `appReady` variant (instanced at node `40601:127880`) that upstream does not
+  implement: while it is false the screen is nothing but the standard
+  background and a centred 24px `DSProgressCircle.medium` — the browser-level
+  wait before the scan application has painted anything.
+- `ApplicationLoading` gained `steps`, and the fixed three it falls back to
+  are now built by the new top-level `loadingStep`. Upstream hardcodes
+  Infrastructure / Scan data / Application and its own spec calls that out as
+  a known limitation, the steps being meant to advance as the load proceeds.
+  The status-scan load needs exactly that: Figma node `40184-47635` shows a
+  *two*-step card, and its two steps advance once (see `ScanLoadingPage`).
+  `loadingStep` exists so a caller passing its own steps gets
+  `enabled: false, isReadOnly: true` right — the pairing that makes a step a
+  progress read-out rather than a tappable disclosure — without repeating the
+  reasoning.
+
+  `assets/images/primescan_device_progress_circle.png` is copied over with the
+  component, at the path it hardcodes: the scanner artwork on a square
+  transparent canvas, which is the format `DSProgressCircleFilled` wants for
+  its centre image.
 
 `showCaptureScanModal` (`lib/flows/capture_scan.dart`) is the prototype's own
 glue: it feeds `MockData.devices` into `DeviceModal.selectDevice` for the
@@ -108,9 +132,40 @@ the "Status scan" / "Treatment scan" cards, whose artwork is in
 the "CEREC 5.3.1" / "Connect 5.3.1" cards, which reuse the machine's own photo,
 as that node does). "Switch device" returns to the list.
 
-The detail view is where the "Capture scan" path stops. Its cards are
-deliberately inert — there is no frame behind them in Figma, so they are left
-non-interactive rather than made to look live and lead nowhere.
+One of the detail view's cards continues the path: **"Status scan"** closes the
+modal and pushes `/scan/loading`, which plays the load and then hands the
+tester over to the second prototype. `DeviceDetailItem.action` marks it —
+named after the flow rather than the route, so `lib/data/` stays independent of
+the router the way `DeviceStatus` stays independent of the components.
+
+`ScanLoadingPage` (`lib/pages/scan_loading_page.dart`) is that load, on timers
+because there is no scan application behind it:
+
+| Phase | For | Figma node |
+| --- | --- | --- |
+| Bare spinner (`appReady: false`) | 2s | `40601-127415` |
+| "Preparing workspace…" active | 2s | `40184-47635` |
+| "Start application" active | 2s | (the same node, advanced) |
+
+then `pushReplacement` to `/switch-prototype`. `SwitchPrototypePage`
+(node `40255-18049`) is the dead-end signpost that sends the tester to the
+other browser window; it has no actions, because the design has none. The
+route is *pushed* rather than gone to so that "Cancel loading" — whose
+documented target is the page DI Scan was started from — is a plain `pop` back
+to the Patient or Treatment detail page underneath (with a fallback to home,
+for a browser reload straight onto the loading URL).
+
+The other detail cards — "Treatment scan", and the PC/Laptop's two
+applications — carry no action and so lead nowhere. They are still tappable:
+`DeviceModal` takes one callback for the whole card list rather than one per
+card, and a swallowed tap beats a card that the design shows as a card but
+that does not even respond to hover. Same call as the notification link below.
+
+The footer logo on `SwitchPrototypePage` is the DS logo shipped by
+`lightning_core_ui` (`Logo-DS-light-default.png`), not a Figma export. It is
+the same lockup the node shows, at the node's 24px height, but the node scales
+its instance down to 79px wide where the real asset is 148 — matching that
+would mean squashing the logo.
 
 The notification copy on the two non-selectable devices in
 `lib/data/mock_data.dart` is **placeholder**: the Figma node carries only

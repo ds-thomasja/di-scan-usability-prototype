@@ -79,6 +79,19 @@ class Treatment {
 /// components; `lib/flows/capture_scan.dart` maps between the two.
 enum DeviceStatus { online, offline, inUse, warning }
 
+/// What activating a [DeviceDetailItem]'s card does.
+///
+/// Named after the flow it starts rather than the route it goes to, so this
+/// data layer stays independent of the router the way [DeviceStatus] stays
+/// independent of the components; `lib/flows/capture_scan.dart` maps between
+/// the two.
+enum DeviceDetailAction {
+  /// Starts the status-scan flow: the app-loading wait, then the
+  /// "Switch prototype" signpost that hands the tester to the other
+  /// prototype.
+  statusScan,
+}
+
 /// One card of a [Device]'s detail view: what the device can do, or what runs
 /// on it.
 ///
@@ -92,10 +105,15 @@ class DeviceDetailItem {
     required this.title,
     required this.subline,
     required this.assetPath,
+    this.action,
   });
 
   final String title;
   final String subline;
+
+  /// What tapping this card does, or null for the cards this click-through
+  /// prototype has no frame behind.
+  final DeviceDetailAction? action;
 
   /// Image shown in the card's 120x120 thumbnail slot. Square, and already
   /// carrying its own whitespace, so it needs no inset.

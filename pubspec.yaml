@@ -82,6 +82,12 @@ flutter:
     # Scan-mode artwork for the scanner's detail view, exported from Figma
     # node 40184-46885.
     - assets/scan_modes/
+    # Centre image of the "Application loading" progress circle: the scanner
+    # artwork composed onto a square, transparent canvas at the Figma inset,
+    # which is the format DSProgressCircleFilled expects. Copied together with
+    # `lib/components/application_loading/` from `ds-thomasja/di-scan`, at the
+    # path that component hardcodes.
+    - assets/images/primescan_device_progress_circle.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

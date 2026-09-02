@@ -197,6 +197,7 @@ class MockData {
       title: 'Status scan',
       subline: 'Use for dental check-ups and scanning before surgery.',
       assetPath: 'assets/scan_modes/status_scan.png',
+      action: DeviceDetailAction.statusScan,
     ),
     DeviceDetailItem(
       title: 'Treatment scan',
