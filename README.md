@@ -13,18 +13,93 @@ security, just a casual-visitor deterrent while the link is shared for testing).
 
 ## Vendored components
 
-`lib/components/device_card/` and `lib/components/device_modal/` are unmodified
-copies of the shared Flutter components from
+`lib/components/device_card/` and `lib/components/device_modal/` are copies of
+the shared Flutter components from
 [`ds-thomasja/overarching`](https://github.com/ds-thomasja/overarching/tree/main/lib/components),
-vendored because that repo is not a publishable package. Re-copy them from
-`main` rather than editing them here; they are built against
-`lightning_core_ui` v51, this prototype pins v52.
+vendored because that repo is not a publishable package. Change them upstream
+and re-copy them from `main` rather than editing them here; they are built
+against `lightning_core_ui` v51, this prototype pins v52.
+
+**They have diverged.** The changes below were made here to render the
+"Select device" modal's second state (see `showCaptureScanModal` below), and
+have to be re-applied — or, better, ported upstream — after any re-copy:
+
+- `DeviceCardStatus` gained `inUse` and `warning` (information- and
+  warning-styled tags), and `DeviceCard` gained a `statusLabel` that overrides
+  the tag copy the enum supplies, for the counted "3 warnings" tag.
+- `DeviceCard` gained `selectable`. A non-selectable card is the Figma variant
+  that looks like the default card except for its thumbnail, which carries
+  `opacities/disabled` — deliberately *not* `enabled: false`, which dims the
+  text and tags too and makes the card inert.
+- `DeviceCard` gained `notification` (`DeviceCardNotification`): the Figma
+  "Device card" node `5389:18149` section — a `border/subdued` rule across the
+  card's full inner width, a description, and a `text/interactive` link — that
+  a non-selectable card reveals when tapped.
+  - This is the one structural change: the thumbnail and the tags row moved out
+    of `DSSpaciousCard.imageWidget`/`.tags` into its `body`, because both of
+    those slots render *beside* the content column while the notification rule
+    has to span the full inner width. Chrome, hover/press/focus and keyboard
+    activation still come from `DSSpaciousCard`; `DeviceCardThemeData` now
+    re-derives the thumbnail's size, dimming and gaps from the same tokens.
+  - The section slides open and closed with an `AnimatedSize` (380ms,
+    `Curves.easeOutQuint`, `Alignment.topCenter`) copied from the
+    `catalog_card` component of
+    [`ds-thomasja/di-scan`](https://github.com/ds-thomasja/di-scan/tree/main/lib/components/catalog_card),
+    so both cards expand at the same rate. DS v52 has no motion tokens, so the
+    values are literals in both places, exported as the public
+    `deviceRevealDuration`/`deviceRevealCurve`.
+  - Known cost: the thumbnail is no longer boned while `isLoading`, since the
+    DS bone effect is not reachable outside `lightning_core_ui`
+    (`DSSkeletonizeWrapper` is `@internal`). It is hidden instead, the same way
+    the battery indicator already was. Nothing in this prototype uses
+    `isLoading`.
+- `DeviceCard` gained `sublineMaxLines` (default `defaultSublineMaxLines`, 2 —
+  the previous hardcoded cap). The detail view's cards pass `null` so their
+  subline wraps freely: it is a sentence, not a serial number, and the Figma
+  detail nodes give that box no line clamp. It would otherwise truncate, because
+  the vendored card's thumbnail follows the DS `image.size.card` token (128)
+  rather than Figma's 120, leaving the text column 8px narrower than the node's.
+  `DeviceModalDevice` forwards it.
+- `DeviceModal.selectDevice` gained `secondaryLabel`/`onSecondaryPressed`,
+  which put a secondary button in the footer of either list mode — a
+  "one-click" list (`selectable: false`) previously had no footer button at
+  all. `DeviceModalDevice` forwards the new `statusLabel`, `selectable` and
+  `notification`, and the modal tracks which single non-selectable card has its
+  notification open.
+- `DeviceModal`'s select-mode device list is wrapped in an `AnimatedSize` on the
+  same `deviceRevealDuration`/`deviceRevealCurve`, so growing or shrinking
+  `devices` — what the "All devices" button does — slides the rows in and eases
+  the modal to its new height instead of snapping. The footer button's own label
+  and width still change in one frame; nothing in Figma specifies motion for it,
+  and every way of animating it either clips the label mid-flight or ghosts two
+  buttons over each other.
 
 `showCaptureScanModal` (`lib/flows/capture_scan.dart`) is the prototype's own
 glue: it feeds `MockData.devices` into `DeviceModal.selectDevice` for the
-"Capture scan" buttons on the Patient detail and Treatment detail pages. The
-device photos in `assets/devices/` are exported from the Figma frame
-*DI Scan · Projects*, node `40250-121538`.
+"Capture scan" buttons on the Patient detail and Treatment detail pages, and
+owns the "All devices" toggle between the two states of the Figma frame
+*DI Scan · Projects* — node `40250-121538` (the two selectable devices) and
+node `40428-152410` (all four, the non-selectable two with dimmed thumbnails).
+The device photos in `assets/devices/` are exported from the former.
+
+It also owns the switch between the modal's two views. Picking a device swaps
+the list for that device's detail view, built with `DeviceModal.deviceDetails`
+from the device's own `detail*` fields in `lib/data/mock_data.dart`: Figma node
+`40184-46885` for the scanner (serial number, battery and status in the header;
+the "Status scan" / "Treatment scan" cards, whose artwork is in
+`assets/scan_modes/`) and node `40184-46884` for the PC/Laptop (status only;
+the "CEREC 5.3.1" / "Connect 5.3.1" cards, which reuse the machine's own photo,
+as that node does). "Switch device" returns to the list.
+
+The detail view is where the "Capture scan" path stops. Its cards are
+deliberately inert — there is no frame behind them in Figma, so they are left
+non-interactive rather than made to look live and lead nowhere.
+
+The notification copy on the two non-selectable devices in
+`lib/data/mock_data.dart` is **placeholder**: the Figma node carries only
+lorem-ipsum, so it was written to be plausible for a test session, not signed
+off. Its link is deliberately a dead end — styled live, per the node, but with
+nothing behind it.
 
 ## Running locally
 

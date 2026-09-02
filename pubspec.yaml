@@ -79,6 +79,9 @@ flutter:
     # Device photos for the "Select device" modal, exported from the Figma
     # frame (DI Scan · Projects, node 40250-121538).
     - assets/devices/
+    # Scan-mode artwork for the scanner's detail view, exported from Figma
+    # node 40184-46885.
+    - assets/scan_modes/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

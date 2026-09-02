@@ -4,13 +4,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:lightning_core_ui/lightning_core_ui.dart';
 
-/// The connectivity status communicated by [DeviceCard]'s built-in status tag.
+/// How long a section of a device card, or of a list of them, takes to slide
+/// open — and the curve it slides on.
+///
+/// Taken from the `catalog_card` component of the DI Scan prototype
+/// (`ds-thomasja/di-scan`, `lib/components/catalog_card`), which expands its
+/// own card body with exactly this `AnimatedSize`. Public, and deliberately
+/// not named after any one animation, because `DeviceModal` reuses it for the
+/// device list its "All devices" button grows and shrinks: every reveal in
+/// this component pair moves at the same rate, from one pair of constants.
+///
+/// `lightning_core_ui` v52 exposes no motion tokens, so these are literals
+/// here as they are in `catalog_card` — replace both sites together if a
+/// duration/easing token ever lands.
+const Duration deviceRevealDuration = Duration(milliseconds: 380);
+
+/// The easing of a device reveal; see [deviceRevealDuration].
+const Curve deviceRevealCurve = Curves.easeOutQuint;
+
+/// The availability status communicated by [DeviceCard]'s built-in status tag.
 enum DeviceCardStatus {
   /// The device is online. Rendered as a success-styled "Online" tag.
   online,
 
   /// The device is offline. Rendered as a neutral-styled "Offline" tag.
   offline,
+
+  /// The device is busy in another session. Rendered as an
+  /// information-styled "In use" tag.
+  inUse,
+
+  /// The device reports warnings. Rendered as a warning-styled "Warning" tag;
+  /// pass [DeviceCard.statusLabel] to name the count ("3 warnings").
+  warning,
 }
 
 /// How a [DeviceCardStatus] is presented as a DS status tag.
@@ -26,24 +52,64 @@ extension DeviceCardStatusPresentation on DeviceCardStatus {
   String get label => switch (this) {
         DeviceCardStatus.online => 'Online',
         DeviceCardStatus.offline => 'Offline',
+        DeviceCardStatus.inUse => 'In use',
+        DeviceCardStatus.warning => 'Warning',
       };
 
   /// The DS status tag styling.
   DSStatusTagType get tagType => switch (this) {
         DeviceCardStatus.online => DSStatusTagType.success,
         DeviceCardStatus.offline => DSStatusTagType.neutral,
+        DeviceCardStatus.inUse => DSStatusTagType.information,
+        DeviceCardStatus.warning => DSStatusTagType.warning,
       };
+}
+
+/// The explanatory section [DeviceCard] reveals below its content.
+///
+/// Rendered as the Figma "Notification" frame: a `border/subdued` rule across
+/// the full inner width of the card, a multi-line description, and an optional
+/// link. It is what a non-selectable card shows when tapped — see
+/// [DeviceCard.selectable] — but the card itself only renders what it is
+/// given; when the section is shown, and what it says, is the caller's.
+class DeviceCardNotification {
+  /// Creates a notification section.
+  const DeviceCardNotification({
+    required this.description,
+    this.linkText,
+    this.onLinkPressed,
+  });
+
+  /// The explanatory copy. Wraps onto as many lines as it needs.
+  final String description;
+
+  /// The link below [description]. No link is rendered when null.
+  final String? linkText;
+
+  /// Called when [linkText] is pressed; the link is inert when null.
+  final VoidCallback? onLinkPressed;
 }
 
 /// A selectable card summarizing a connected device: thumbnail, name,
 /// serial/status line, optional battery level, and a connectivity status tag.
 ///
-/// Built on top of [DSSpaciousCard], which already implements everything a
-/// card needs to behave like the rest of the DS: token-driven background/
-/// border/shadow per [DSClickableState], keyboard activation (Enter/Space),
-/// mouse hover/press/focus visuals, and disabled-image opacity. This widget
-/// only supplies the device-specific content that [DSSpaciousCard] has no
-/// opinion about — the name/subline/battery block and the status tag.
+/// Built on top of [DSSpaciousCard] for its *chrome*, which already
+/// implements everything a card needs to behave like the rest of the DS:
+/// token-driven background/border/shadow per `DSClickableState`, keyboard
+/// activation (Enter/Space), and mouse hover/press/focus visuals.
+///
+/// The card's whole inner layout, on the other hand, is supplied through
+/// `DSSpaciousCard.body`: the thumbnail, the name/subline/battery block, the
+/// status tag and the [DeviceCardNotification] section. The thumbnail and
+/// tags are *not* handed to `DSSpaciousCard.imageWidget`/`.tags`, even though
+/// those slots exist, because both render beside — and so indent — the
+/// content column, while the notification's rule has to span the card's full
+/// inner width. Owning the row is what buys that, at the cost of
+/// re-deriving three things `DSSpaciousCard` would otherwise have supplied:
+/// the thumbnail's `image.size.card` size, its `opacities/disabled` dimming
+/// (which this card needs per-variant anyway — see [selectable]) and the
+/// `spacing/component` gaps around both, all of which
+/// [DeviceCardThemeData] now reads from the same tokens the DS card does.
 ///
 /// ## Relationship to the Figma source of truth
 ///
@@ -57,6 +123,12 @@ extension DeviceCardStatusPresentation on DeviceCardStatus {
 /// - Thumbnail size: Figma shows 120x120, DS uses `image.size.card`
 ///   (128 on non-small, 64 on small).
 ///
+/// The notification section is the exception, and is reproduced from Figma
+/// "Device card", node `5389:18149`, token for token: a `border/subdued` rule
+/// at `border/width/standard`, `spacing/component/m` above and below it,
+/// `spacing/component/xs` of side padding, a `textBase` description in
+/// `text/standard`, and a `textAction` link in `text/interactive`.
+///
 /// Everything the card *content* controls does follow the Figma node exactly,
 /// including the thumbnail's `border/radius/small` corner (which deliberately
 /// differs from the card's own `border/radius/standard`).
@@ -69,9 +141,13 @@ class DeviceCard extends StatelessWidget {
     this.batteryPercent,
     this.lowBatteryThreshold = 30,
     this.status = DeviceCardStatus.online,
+    this.statusLabel,
+    this.sublineMaxLines = defaultSublineMaxLines,
     this.selected = false,
+    this.selectable = true,
     this.enabled = true,
     this.isLoading = false,
+    this.notification,
     this.onTap,
     this.focusNode,
     this.autofocus = false,
@@ -83,6 +159,19 @@ class DeviceCard extends StatelessWidget {
 
   /// Secondary line, e.g. a serial number ("SN:865562").
   final String? subline;
+
+  /// How many lines [subline] may occupy before it is truncated with an
+  /// ellipsis, or null to let it wrap onto as many lines as it needs.
+  ///
+  /// Defaults to [defaultSublineMaxLines], which is what the Figma "Device
+  /// card" node shows: its subline is a serial number, so two lines is
+  /// generous. Cards whose subline is a sentence — the ones the Figma device
+  /// *detail* nodes list below the device photo, whose subline box carries no
+  /// line clamp and grows instead — pass null.
+  ///
+  /// A battery indicator that does not fit inline may still add one line on
+  /// top of this budget; see [_SublineRow].
+  final int? sublineMaxLines;
 
   /// Widget rendered in the thumbnail slot. Falls back to a plain placeholder
   /// box when omitted.
@@ -101,11 +190,31 @@ class DeviceCard extends StatelessWidget {
   /// mirrors that widget's own default.
   final int lowBatteryThreshold;
 
-  /// The connectivity status shown as a tag below the subline/battery row.
+  /// The availability status shown as a tag below the subline/battery row.
   /// `null` hides the tag entirely.
   final DeviceCardStatus? status;
 
+  /// Replaces the tag text that [status] would otherwise supply, keeping its
+  /// styling. Meant for statuses whose copy carries data the enum cannot —
+  /// e.g. [DeviceCardStatus.warning] rendered as "3 warnings".
+  ///
+  /// Ignored when [status] is `null`, which renders no tag at all.
+  final String? statusLabel;
+
   final bool selected;
+
+  /// Whether this device can be picked.
+  ///
+  /// A non-selectable card is the Figma variant that looks like the default
+  /// card except for its thumbnail, which carries `opacities/disabled`. It is
+  /// deliberately *not* the same as `enabled: false`: the card keeps its
+  /// standard text colors, its full-opacity tags and its whole interactive
+  /// chrome, because tapping it is what reveals the [notification] explaining
+  /// why it cannot be picked. [selected] is ignored while this is false.
+  ///
+  /// Ignored when [enabled] is false, which dims the card as a whole.
+  final bool selectable;
+
   final bool enabled;
 
   /// Puts the card into its loading state and disables interaction.
@@ -134,9 +243,17 @@ class DeviceCard extends StatelessWidget {
   ///   while loading, the same way the tags row is hidden, rather than
   ///   showing a mismatched mix of real and skeleton content.
   ///
-  /// The thumbnail *is* covered: `DSSpaciousCard` replaces its image slot
-  /// with a bone while skeleton mode is on, and this card always supplies an
-  /// [DSSpaciousCard.imageWidget], so the slot is always present to be boned.
+  /// - The thumbnail. It used to be boned for free by
+  ///   `DSSpaciousCard.imageWidget`, but that slot renders beside the content
+  ///   column, and the Figma [notification] section has to span the card's
+  ///   full inner width — so the thumbnail moved into the content column,
+  ///   which the DS card does not bone. The DS bone effect itself is not
+  ///   reachable from outside `lightning_core_ui` (`DSSkeletonizeWrapper` is
+  ///   `@internal`), so rather than paint an off-token imitation the
+  ///   thumbnail is hidden the same way the battery indicator is, leaving its
+  ///   empty `surface/subdued` slot.
+  /// - The [notification] section, which is not part of the loading state at
+  ///   all.
   final bool isLoading;
 
   /// Card is non-interactive (no hover/press/focus visuals, not keyboard
@@ -152,7 +269,19 @@ class DeviceCard extends StatelessWidget {
   /// The fixed card width from the Figma node.
   final double width;
 
+  /// The section revealed below the card's content, across its full inner
+  /// width. Hidden when null, and suppressed entirely while [isLoading].
+  ///
+  /// See [DeviceCardNotification], and [selectable] for what it is for.
+  final DeviceCardNotification? notification;
+
   bool get _interactive => enabled && !isLoading && onTap != null;
+
+  /// Whether the thumbnail carries `opacities/disabled`.
+  ///
+  /// Both the disabled and the non-selectable variant dim it; only the
+  /// disabled one dims everything else too.
+  bool get _thumbnailDimmed => !enabled || !selectable;
 
   @override
   Widget build(BuildContext context) {
@@ -160,54 +289,95 @@ class DeviceCard extends StatelessWidget {
     final theme = DeviceCardThemeData(tokens);
     final status = this.status;
 
+    final notification = isLoading ? null : this.notification;
+
+    // Everything inside the card's padding, in one slot.
+    //
+    // The thumbnail and the tags row are laid out here rather than handed to
+    // `DSSpaciousCard.imageWidget`/`.tags`, both of which live *beside*, and
+    // therefore indent, the content column. The Figma node's notification
+    // rule spans the card's full inner width, so the row above it has to be
+    // this slot's own child. Card chrome, hover/press/focus visuals and
+    // keyboard activation all still come from `DSSpaciousCard`, which is the
+    // part worth not re-implementing — see [DeviceCard]'s class doc.
     final card = DSSpaciousCard(
-      // The body is built identically whether or not the card is loading.
-      // `DSText` opts into skeleton mode on its own, so while [isLoading] the
-      // name and subline render as bones whose width and height are derived
-      // from the text and text style actually passed in — which is how the DS
-      // skeleton mechanism is meant to be driven. See [isLoading].
-      body: _DeviceCardBody(
-        name: name,
-        subline: subline,
-        batteryPercent: batteryPercent,
-        lowBatteryThreshold: lowBatteryThreshold,
-        enabled: enabled,
-        isLoading: isLoading,
-        theme: theme,
-      ),
-      // The Figma node renders no tags row at all while loading.
-      tags: (isLoading || status == null)
-          ? null
-          : [
-              // Per Figma the whole tags row carries its own
-              // `opacities/disabled`, independently of the text-color swap
-              // applied to the name/subline. With a single tag, dimming the
-              // tag is equivalent to dimming the row.
-              Opacity(
-                opacity: enabled ? 1 : theme.disabledOpacity,
-                child: DSTag.status(
-                  text: status.label,
-                  statusType: status.tagType,
-                ),
-              ),
-            ],
-      // Decorative: the thumbnail conveys no information beyond what [name]
-      // and [subline] already state, so it is excluded from the semantics
-      // tree rather than announced as an unlabeled image.
+      // Animates the card's height whenever the notification section comes or
+      // goes, growing downwards from the content row, which stays put — the
+      // "slide open" of the sibling `catalog_card` component, at the same
+      // duration and easing. See [deviceRevealDuration].
       //
-      // Built identically whether or not the card is loading, so the slot
-      // keeps its real `border/radius/small` corner in both states.
-      imageWidget: ExcludeSemantics(
-        // DSSpaciousCard clips the image slot with the card's standard
-        // radius; the Figma node asks for the smaller `border/radius/small`
-        // on the thumbnail specifically. Clipping again with the smaller
-        // radius inside the DS clip yields the intended corner.
-        child: ClipRRect(
-          borderRadius: theme.thumbnailBorderRadius,
-          child: thumbnail ?? ColoredBox(color: tokens.surface.subdued),
+      // AnimatedSize clips to its animating box (`Clip.hardEdge` by default),
+      // so the section is revealed rather than spilling out of the card while
+      // it grows. It does not animate its first layout, so a card built with
+      // its notification already open simply starts open.
+      body: AnimatedSize(
+        duration: deviceRevealDuration,
+        curve: deviceRevealCurve,
+        alignment: Alignment.topCenter,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                _Thumbnail(
+                  // Hidden while loading: see [isLoading].
+                  thumbnail: isLoading ? null : thumbnail,
+                  dimmed: _thumbnailDimmed,
+                  theme: theme,
+                ),
+                SizedBox(width: theme.thumbnailGap),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // `DSText` opts into skeleton mode on its own, so while
+                      // [isLoading] the name and subline render as bones whose
+                      // width and height are derived from the text and text
+                      // style actually passed in — which is how the DS skeleton
+                      // mechanism is meant to be driven. See [isLoading].
+                      _DeviceCardBody(
+                        name: name,
+                        subline: subline,
+                        sublineMaxLines: sublineMaxLines,
+                        batteryPercent: batteryPercent,
+                        lowBatteryThreshold: lowBatteryThreshold,
+                        enabled: enabled,
+                        isLoading: isLoading,
+                        theme: theme,
+                      ),
+                      // The Figma node renders no tags row at all while loading.
+                      if (!isLoading && status != null)
+                        Padding(
+                          padding: EdgeInsets.only(top: theme.tagsTopGap),
+                          // Per Figma the whole tags row carries its own
+                          // `opacities/disabled`, independently of the
+                          // text-color swap applied to the name/subline. With a
+                          // single tag, dimming the tag is equivalent to
+                          // dimming the row.
+                          child: Opacity(
+                            opacity: enabled ? 1 : theme.disabledOpacity,
+                            child: DSTag.status(
+                              text: statusLabel ?? status.label,
+                              statusType: status.tagType,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (notification != null) ...[
+              SizedBox(height: theme.notificationTopGap),
+              _Notification(notification: notification, theme: theme),
+            ],
+          ],
         ),
       ),
-      selected: selected,
+      // Never in the selected state when the device cannot be picked.
+      selected: selected && selectable,
       focusNode: focusNode,
       autofocus: autofocus,
       onPressed: _interactive ? onTap : null,
@@ -219,7 +389,7 @@ class DeviceCard extends StatelessWidget {
       // non-interactive (e.g. disabled or still loading).
       button: true,
       enabled: enabled,
-      selected: selected,
+      selected: selectable ? selected : null,
       child: SizedBox(
         width: width,
         // The single mechanism that produces the loading state: it publishes
@@ -250,7 +420,24 @@ class DeviceCardThemeData {
         disabledOpacity = d.opacities.disabled,
         dividerWidth = d.spacing.component.m,
         sublineRowRunSpacing = d.spacing.component.xxs,
-        thumbnailBorderRadius = BorderRadius.circular(d.border.radius.small);
+        thumbnailBorderRadius = BorderRadius.circular(d.border.radius.small),
+        thumbnailSize = Size.square(d.image.size.card),
+        thumbnailPlaceholderColor = d.surface.subdued,
+        thumbnailGap = d.spacing.component.m,
+        tagsTopGap = d.spacing.component.xs,
+        notificationTopGap = d.spacing.component.m,
+        notificationBorderSide = BorderSide(
+          color: d.border.subdued,
+          width: d.border.width.standard,
+        ),
+        notificationPadding = EdgeInsets.only(
+          top: d.spacing.component.m,
+          left: d.spacing.component.xs,
+          right: d.spacing.component.xs,
+        ),
+        notificationLinkGap = d.spacing.component.xxs,
+        notificationTextStyle =
+            d.text.textBase.copyWith(color: d.text.standard);
 
   /// Text style for the device name.
   final TextStyle nameTextStyle;
@@ -290,12 +477,134 @@ class DeviceCardThemeData {
   /// component keeps its own radius while loading. Real component behavior
   /// wins over the static mockup.
   final BorderRadius thumbnailBorderRadius;
+
+  /// The thumbnail slot's side length (`image.size.card`, 128 on non-small
+  /// form factors and 64 on small).
+  ///
+  /// Read from the same token `DSSpaciousCard` sizes its own image slot from,
+  /// so moving the thumbnail into the content column did not change its size.
+  /// The Figma node specifies a fixed 120; the DS token wins here, as it did
+  /// before the move.
+  final Size thumbnailSize;
+
+  /// Fills the thumbnail slot when there is no thumbnail to show.
+  final Color thumbnailPlaceholderColor;
+
+  /// Gap between the thumbnail and the name/subline column
+  /// (`spacing/component/m`, 16) — the same gap `DSSpaciousCard` applied as
+  /// its `contentWithImagePadding`.
+  final double thumbnailGap;
+
+  /// Gap above the tags row (`spacing/component/xs`, 8) — the same gap
+  /// `DSSpaciousCard` applied as its `tagsPadding`.
+  final double tagsTopGap;
+
+  /// Gap between the card's content row and the notification rule
+  /// (`spacing/component/m`, 16).
+  final double notificationTopGap;
+
+  /// The notification section's top rule (`border/subdued`,
+  /// `border/width/standard`).
+  final BorderSide notificationBorderSide;
+
+  /// Padding inside the notification section, below its rule: 16 above, and
+  /// `spacing/component/xs` (8) on each side, per the Figma node.
+  final EdgeInsets notificationPadding;
+
+  /// Gap between the notification's description and its link
+  /// (`spacing/component/xxs`, 4).
+  final double notificationLinkGap;
+
+  /// Text style of the notification's description (`textBase` in
+  /// `text/standard`).
+  final TextStyle notificationTextStyle;
+}
+
+/// The card's thumbnail slot.
+///
+/// Carries `opacities/disabled` when [dimmed] — the only difference between
+/// the default card and the non-selectable variant. See
+/// [DeviceCard.selectable].
+class _Thumbnail extends StatelessWidget {
+  const _Thumbnail({
+    required this.thumbnail,
+    required this.dimmed,
+    required this.theme,
+  });
+
+  final Widget? thumbnail;
+  final bool dimmed;
+  final DeviceCardThemeData theme;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.fromSize(
+    size: theme.thumbnailSize,
+    // Decorative: the thumbnail conveys no information beyond what the
+    // name and subline already state, so it is excluded from the
+    // semantics tree rather than announced as an unlabeled image.
+    child: ExcludeSemantics(
+      child: ClipRRect(
+        // Deliberately the smaller `border/radius/small`, per the Figma
+        // node; see [DeviceCardThemeData.thumbnailBorderRadius].
+        borderRadius: theme.thumbnailBorderRadius,
+        child: Opacity(
+          opacity: dimmed ? theme.disabledOpacity : 1,
+          child:
+              thumbnail ?? ColoredBox(color: theme.thumbnailPlaceholderColor),
+        ),
+      ),
+    ),
+  );
+}
+
+/// The Figma "Notification" frame: a rule across the card's full inner width,
+/// a description, and an optional link.
+class _Notification extends StatelessWidget {
+  const _Notification({required this.notification, required this.theme});
+
+  final DeviceCardNotification notification;
+  final DeviceCardThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final linkText = notification.linkText;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        border: Border(top: theme.notificationBorderSide),
+      ),
+      padding: theme.notificationPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Unlike the card's name, the description is explicitly multi-line
+          // in the Figma node, so it wraps instead of truncating.
+          DSText(
+            notification.description,
+            style: theme.notificationTextStyle,
+            maxLines: null,
+            overflow: null,
+          ),
+          if (linkText != null) ...[
+            SizedBox(height: theme.notificationLinkGap),
+            // DSLinkWidget supplies `textAction` in `text/interactive`, which
+            // is exactly what the node specifies, plus the DS link's own
+            // hover/focus treatment.
+            DSLinkWidget(text: linkText, onPressed: notification.onLinkPressed),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _DeviceCardBody extends StatelessWidget {
   const _DeviceCardBody({
     required this.name,
     required this.subline,
+    required this.sublineMaxLines,
     required this.batteryPercent,
     required this.lowBatteryThreshold,
     required this.enabled,
@@ -305,6 +614,7 @@ class _DeviceCardBody extends StatelessWidget {
 
   final String name;
   final String? subline;
+  final int? sublineMaxLines;
   final int? batteryPercent;
   final int lowBatteryThreshold;
   final bool enabled;
@@ -329,6 +639,7 @@ class _DeviceCardBody extends StatelessWidget {
         DSText(name, style: theme.nameTextStyle.copyWith(color: textColor)),
         _SublineRow(
           subline: subline,
+          maxLines: sublineMaxLines,
           // Hidden while loading: see [DeviceCard.isLoading].
           batteryPercent: isLoading ? null : batteryPercent,
           lowBatteryThreshold: lowBatteryThreshold,
@@ -341,12 +652,13 @@ class _DeviceCardBody extends StatelessWidget {
   }
 }
 
-/// The number of lines the subline text itself may occupy before it is
-/// truncated with an ellipsis.
+/// The default number of lines the subline text may occupy before it is
+/// truncated with an ellipsis; see [DeviceCard.sublineMaxLines], which
+/// overrides it per card.
 ///
 /// The battery indicator may add one more line on top of this budget; see
 /// [_SublineRow].
-const int _sublineMaxLines = 2;
+const int defaultSublineMaxLines = 2;
 
 /// The glyph separating the subline from an inline battery indicator.
 const String _dividerGlyph = '·';
@@ -411,6 +723,7 @@ const double _inlineFitTolerance = 0.01;
 class _SublineRow extends StatelessWidget {
   const _SublineRow({
     required this.subline,
+    required this.maxLines,
     required this.batteryPercent,
     required this.lowBatteryThreshold,
     required this.textColor,
@@ -419,6 +732,10 @@ class _SublineRow extends StatelessWidget {
   });
 
   final String? subline;
+
+  /// Forwarded to [DeviceCard.sublineMaxLines].
+  final int? maxLines;
+
   final int? batteryPercent;
   final int lowBatteryThreshold;
   final Color textColor;
@@ -446,6 +763,7 @@ class _SublineRow extends StatelessWidget {
 
     return _SublineFlow(
       subline: subline,
+      sublineMaxLines: maxLines,
       sublineStyle: resolvedSublineStyle,
       // Figma gives the divider a fixed 16px box with the glyph centered
       // inside, rather than padding around the glyph.
@@ -487,6 +805,7 @@ class _SublineFlow
     extends SlottedMultiChildRenderObjectWidget<_SublineSlot, RenderBox> {
   const _SublineFlow({
     required this.subline,
+    required this.sublineMaxLines,
     required this.sublineStyle,
     required this.battery,
     required this.dividerWidth,
@@ -496,6 +815,9 @@ class _SublineFlow
 
   /// The subline text, or null when the battery renders on its own.
   final String? subline;
+
+  /// Forwarded to [DeviceCard.sublineMaxLines].
+  final int? sublineMaxLines;
 
   /// The style [subline] is painted with, already resolved against the ambient
   /// [DefaultTextStyle].
@@ -542,7 +864,14 @@ class _SublineFlow
           : DSText(
               subline,
               style: sublineStyle,
-              maxLines: _sublineMaxLines,
+              maxLines: sublineMaxLines,
+              // `DSText` defaults `overflow` to ellipsis, which an uncapped
+              // subline has nothing to apply it to but would still hand the
+              // painter — the same pairing [_Notification] spells out for its
+              // own free-wrapping description.
+              overflow: sublineMaxLines == null
+                  ? null
+                  : TextOverflow.ellipsis,
             ),
       _SublineSlot.battery => battery,
     };
@@ -552,6 +881,7 @@ class _SublineFlow
   _RenderSublineFlow createRenderObject(BuildContext context) =>
       _RenderSublineFlow(
         sublineSpan: _sublineSpan,
+        sublineMaxLines: sublineMaxLines,
         dividerSpan: _dividerSpan,
         dividerWidth: dividerWidth,
         runSpacing: runSpacing,
@@ -565,6 +895,7 @@ class _SublineFlow
   ) {
     renderObject
       ..sublineSpan = _sublineSpan
+      ..sublineMaxLines = sublineMaxLines
       ..dividerSpan = _dividerSpan
       ..dividerWidth = dividerWidth
       ..runSpacing = runSpacing
@@ -595,24 +926,25 @@ class _RenderSublineFlow extends RenderBox
     with SlottedContainerRenderObjectMixin<_SublineSlot, RenderBox> {
   _RenderSublineFlow({
     required this._sublineSpan,
+    required this._sublineMaxLines,
     required this._dividerSpan,
     required this._dividerWidth,
     required this._runSpacing,
     required this._textScaler,
-  });
+  }) {
+    _applySublineMaxLines();
+  }
 
   /// Measures — but never paints — the subline, to learn where its last line
   /// ends and how tall that line is.
   ///
   /// Configured to match the `Text` that [DSText] paints: left-to-right,
-  /// start-aligned, capped at [_sublineMaxLines] with an ellipsis. The
-  /// left-to-right assumption mirrors [DSText]'s own internal measurement,
-  /// which is likewise hard-coded to it.
-  final TextPainter _sublinePainter = TextPainter(
-    textDirection: TextDirection.ltr,
-    maxLines: _sublineMaxLines,
-    ellipsis: _ellipsis,
-  );
+  /// start-aligned, and capped at [_sublineMaxLines] with an ellipsis — see
+  /// [_applySublineMaxLines], which keeps the cap in sync. The left-to-right
+  /// assumption mirrors [DSText]'s own internal measurement, which is likewise
+  /// hard-coded to it.
+  final TextPainter _sublinePainter =
+      TextPainter(textDirection: TextDirection.ltr);
 
   /// Paints the divider glyph. See [_SublineSlot] for why it is not a child.
   final TextPainter _dividerPainter =
@@ -625,6 +957,26 @@ class _RenderSublineFlow extends RenderBox
     if (_sublineSpan == value) return;
     _sublineSpan = value;
     markNeedsLayout();
+  }
+
+  /// The line cap, mirrored onto [_sublinePainter] so the measured last line
+  /// matches the painted one.
+  ///
+  /// An uncapped subline never truncates, so the painter is given no ellipsis
+  /// either — `TextPainter` would otherwise have nothing to apply it to, but
+  /// stating both together keeps the two in step.
+  int? _sublineMaxLines;
+  set sublineMaxLines(int? value) {
+    if (_sublineMaxLines == value) return;
+    _sublineMaxLines = value;
+    _applySublineMaxLines();
+    markNeedsLayout();
+  }
+
+  void _applySublineMaxLines() {
+    _sublinePainter
+      ..maxLines = _sublineMaxLines
+      ..ellipsis = _sublineMaxLines == null ? null : _ellipsis;
   }
 
   TextSpan _dividerSpan;

@@ -38,10 +38,14 @@ class DeviceModalDevice {
   const DeviceModalDevice({
     required this.name,
     this.subline,
+    this.sublineMaxLines = defaultSublineMaxLines,
     this.thumbnail,
     this.batteryPercent,
     this.lowBatteryThreshold = 30,
     this.status,
+    this.statusLabel,
+    this.selectable = true,
+    this.notification,
     this.enabled = true,
   });
 
@@ -50,6 +54,14 @@ class DeviceModalDevice {
 
   /// Forwarded to [DeviceCard.subline].
   final String? subline;
+
+  /// Forwarded to [DeviceCard.sublineMaxLines].
+  ///
+  /// Defaults to the card's own [defaultSublineMaxLines]. The details mode's
+  /// cards pass null: their subline is a sentence describing what the device
+  /// offers, not a serial number, and the Figma detail nodes let that box grow
+  /// rather than clamping it.
+  final int? sublineMaxLines;
 
   /// Forwarded to [DeviceCard.thumbnail].
   final Widget? thumbnail;
@@ -69,6 +81,24 @@ class DeviceModalDevice {
   /// It also makes the name/subline-only card of the Figma details mode the
   /// zero-configuration case.
   final DeviceCardStatus? status;
+
+  /// Forwarded to [DeviceCard.statusLabel]; overrides the tag text [status]
+  /// would supply, e.g. "3 warnings" for a `DeviceCardStatus.warning` card.
+  final String? statusLabel;
+
+  /// Forwarded to [DeviceCard.selectable]. A non-selectable device's card
+  /// still reacts to a tap — that is what reveals its [notification] — but
+  /// tapping it never selects it or calls
+  /// [DeviceModal.onConfirm]/[DeviceModal.onOtherDeviceSelected].
+  final bool selectable;
+
+  /// Forwarded to [DeviceCard.notification]; the section explaining why a
+  /// non-selectable device cannot be picked.
+  ///
+  /// Only shown once the card has been tapped: the modal tracks which
+  /// non-selectable card is open, so a caller supplies the copy and the modal
+  /// decides when it is on screen.
+  final DeviceCardNotification? notification;
 
   /// Forwarded to [DeviceCard.enabled].
   final bool enabled;
@@ -234,6 +264,8 @@ class DeviceModal extends StatefulWidget {
     required this.onOtherDeviceSelected,
     required this.onSwitchDevice,
     required this.footerButtonLabel,
+    required this.secondaryButtonLabel,
+    required this.onSecondaryPressed,
     required this.initiallySelectedIndex,
     required this.selectionRequiredMessage,
     required this.notificationMessage,
@@ -261,10 +293,14 @@ class DeviceModal extends StatefulWidget {
   /// close into every caller buys nothing. Seed it with
   /// [initiallySelectedIndex], which is read once, on first build.
   ///
-  /// Set [selectable] to `false` for a "one-click" list: there is no footer
-  /// button at all — tapping any card calls [onConfirm] immediately, with
-  /// that card's index, instead of moving a highlight. [confirmLabel] and
+  /// Set [selectable] to `false` for a "one-click" list: there is no primary
+  /// button — tapping any card calls [onConfirm] immediately, with that
+  /// card's index, instead of moving a highlight. [confirmLabel] and
   /// [selectionRequiredMessage] are then unused.
+  ///
+  /// [secondaryLabel] adds a secondary button to the footer in either list
+  /// mode, so a "one-click" list can still carry the Figma frame's
+  /// "All devices" toggle. See [secondaryButtonLabel].
   ///
   /// When [selectable] is `true` (the default), tapping a card only moves the
   /// pending highlight; Confirm is gated on a selection existing, and pressing
@@ -280,6 +316,8 @@ class DeviceModal extends StatefulWidget {
     int? initiallySelectedIndex,
     String title = 'Select device',
     String confirmLabel = 'Confirm',
+    String? secondaryLabel,
+    VoidCallback? onSecondaryPressed,
     bool selectable = true,
     String selectionRequiredMessage = _defaultSelectionRequiredMessage,
     String? notificationMessage,
@@ -297,6 +335,8 @@ class DeviceModal extends StatefulWidget {
           onOtherDeviceSelected: null,
           onSwitchDevice: null,
           footerButtonLabel: confirmLabel,
+          secondaryButtonLabel: secondaryLabel,
+          onSecondaryPressed: onSecondaryPressed,
           initiallySelectedIndex: initiallySelectedIndex,
           selectionRequiredMessage: selectionRequiredMessage,
           notificationMessage: notificationMessage,
@@ -344,6 +384,9 @@ class DeviceModal extends StatefulWidget {
           onOtherDeviceSelected: onOtherDeviceSelected,
           onSwitchDevice: onSwitchDevice,
           footerButtonLabel: switchDeviceLabel,
+          // Details mode's own secondary button is the switch button above.
+          secondaryButtonLabel: null,
+          onSecondaryPressed: null,
           initiallySelectedIndex: null,
           // Irrelevant here: details mode has no selection-gated Confirm.
           selectionRequiredMessage: _defaultSelectionRequiredMessage,
@@ -384,7 +427,7 @@ class DeviceModal extends StatefulWidget {
 
   /// Called with a device index in list mode: either immediately when a card
   /// is tapped and [selectable] is `false` ("one-click" list, which has no
-  /// footer button — see [DeviceModal.selectDevice]), or when the primary
+  /// primary button — see [DeviceModal.selectDevice]), or when the primary
   /// confirm button is pressed with a selection made and [selectable] is
   /// `true`. The button itself is disabled when [onConfirm] is null.
   ///
@@ -407,6 +450,20 @@ class DeviceModal extends StatefulWidget {
   /// can come from the host application's own localizations; the defaults are
   /// the English copy of the Figma node.
   final String footerButtonLabel;
+
+  /// The label of the optional extra secondary button shown in list mode,
+  /// left of the Confirm button (or alone, in "one-click" mode). `null` — the
+  /// default — renders no such button.
+  ///
+  /// This is the Figma "Select device" frame's "All devices" toggle, whose
+  /// pressed state swaps the label for "Selectable devices only". The modal
+  /// holds no state for it: the label and the list it produces are both the
+  /// caller's, so any filtering the button stands for stays with the data.
+  final String? secondaryButtonLabel;
+
+  /// Called when [secondaryButtonLabel]'s button is pressed; the button is
+  /// disabled when null.
+  final VoidCallback? onSecondaryPressed;
 
   /// The initially selected index into [devices] in list mode.
   ///
@@ -478,6 +535,13 @@ class _DeviceModalState extends State<DeviceModal> {
   /// device or dismissing that notification.
   bool _selectionRequired = false;
 
+  /// The index into [DeviceModal.devices] of the non-selectable card whose
+  /// [DeviceModalDevice.notification] is currently open, or null for none.
+  ///
+  /// Only one is open at a time: tapping a second non-selectable card moves
+  /// the section rather than stacking two of them.
+  int? _openNotificationIndex;
+
   @override
   void initState() {
     super.initState();
@@ -493,7 +557,18 @@ class _DeviceModalState extends State<DeviceModal> {
     if (selected != null && selected >= widget.devices.length) {
       _selectedIndex = null;
     }
+    // Same for an open notification: the "All devices" toggle shortens the
+    // list under us, and the non-selectable cards are the first to go.
+    final open = _openNotificationIndex;
+    if (open != null && open >= widget.devices.length) {
+      _openNotificationIndex = null;
+    }
   }
+
+  /// Opens [index]'s notification section, or closes it if already open.
+  void _toggleNotification(int index) => setState(() {
+        _openNotificationIndex = _openNotificationIndex == index ? null : index;
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -514,7 +589,14 @@ class _DeviceModalState extends State<DeviceModal> {
           ? _buildSelectBody(theme)
           : _buildDetailsBody(theme, details),
       buttons: [
-        // "One-click" list mode (selectable false) has no footer button:
+        // The optional list-mode toggle, left of the primary button per DS
+        // button order — and the only footer button in "one-click" mode.
+        if (details == null && widget.secondaryButtonLabel != null)
+          DSButton.secondary(
+            buttonText: widget.secondaryButtonLabel!,
+            onPressed: widget.onSecondaryPressed,
+          ),
+        // "One-click" list mode (selectable false) has no primary button:
         // tapping a card already acts, via onConfirm — see _buildSelectBody.
         if (details == null && widget.selectable)
           DSButton.primary(
@@ -544,7 +626,27 @@ class _DeviceModalState extends State<DeviceModal> {
   /// When [DeviceModal.selectable] is `true`, tapping a card only moves the
   /// pending highlight. When it is `false` ("one-click" list), tapping a card
   /// calls [DeviceModal.onConfirm] immediately with its index instead.
-  Widget _buildSelectBody(DeviceModalThemeData theme) => _Stack(
+  ///
+  /// The list's height is animated, so a caller that grows or shrinks
+  /// [DeviceModal.devices] — as the "All devices" button does — slides the
+  /// rows into place instead of snapping the modal to a new height. It is the
+  /// same reveal a [DeviceCard]'s own notification section uses, at the same
+  /// [deviceRevealDuration] and [deviceRevealCurve]; the modal surface follows
+  /// because it sizes itself to this body.
+  ///
+  /// `AnimatedSize` clips to its animating box, so appearing rows are revealed
+  /// from the bottom edge rather than popping in at full height. Its first
+  /// layout is not animated, so the modal still opens at its resting size.
+  Widget _buildSelectBody(DeviceModalThemeData theme) => AnimatedSize(
+        duration: deviceRevealDuration,
+        curve: deviceRevealCurve,
+        alignment: Alignment.topCenter,
+        child: _buildSelectList(theme),
+      );
+
+  /// The device rows themselves, sized to their content; see
+  /// [_buildSelectBody], which animates this list's height.
+  Widget _buildSelectList(DeviceModalThemeData theme) => _Stack(
         defaultSpacing: theme.blockSpacing,
         children: [
           _Block.orNull(_buildNotification()),
@@ -552,6 +654,7 @@ class _DeviceModalState extends State<DeviceModal> {
             _Block.orNull(
               _buildDeviceCard(
                 widget.devices[i],
+                index: i,
                 selected: widget.selectable && i == _selectedIndex,
                 onTap: widget.selectable
                     ? () => setState(() {
@@ -627,6 +730,7 @@ class _DeviceModalState extends State<DeviceModal> {
               _Block.orNull(
                 _buildDeviceCard(
                   widget.devices[i],
+                  index: i,
                   selected: false,
                   onTap: widget.onOtherDeviceSelected == null
                       ? null
@@ -681,23 +785,44 @@ class _DeviceModalState extends State<DeviceModal> {
   /// 24 paddings) those are the same number, but stretching also keeps the
   /// rows intact once the DS modal narrows on smaller form factors, or once
   /// the body's scrollbar gutter takes width away.
+  /// A non-selectable device ignores [onTap] entirely: its card is wired to
+  /// open its own [DeviceModalDevice.notification] instead, and stays inert
+  /// when it has none to show.
   Widget _buildDeviceCard(
     DeviceModalDevice device, {
+    required int index,
     required bool selected,
     required VoidCallback? onTap,
-  }) =>
-      DeviceCard(
-        width: double.infinity,
-        name: device.name,
-        subline: device.subline,
-        thumbnail: device.thumbnail,
-        batteryPercent: device.batteryPercent,
-        lowBatteryThreshold: device.lowBatteryThreshold,
-        status: device.status,
-        enabled: device.enabled,
-        selected: selected,
-        onTap: device.enabled ? onTap : null,
-      );
+  }) {
+    final VoidCallback? cardOnTap;
+    if (!device.enabled) {
+      cardOnTap = null;
+    } else if (device.selectable) {
+      cardOnTap = onTap;
+    } else if (device.notification != null) {
+      cardOnTap = () => _toggleNotification(index);
+    } else {
+      cardOnTap = null;
+    }
+
+    return DeviceCard(
+      width: double.infinity,
+      name: device.name,
+      subline: device.subline,
+      sublineMaxLines: device.sublineMaxLines,
+      thumbnail: device.thumbnail,
+      batteryPercent: device.batteryPercent,
+      lowBatteryThreshold: device.lowBatteryThreshold,
+      status: device.status,
+      statusLabel: device.statusLabel,
+      selectable: device.selectable,
+      notification:
+          index == _openNotificationIndex ? device.notification : null,
+      enabled: device.enabled,
+      selected: selected,
+      onTap: cardOnTap,
+    );
+  }
 }
 
 /// Design tokens for [DeviceModal], covering both the modal chrome rebuilt by
@@ -813,10 +938,11 @@ class DeviceModalThemeData {
   /// `spacing/component/m` (16), per direct confirmation against the Figma
   /// node.
   ///
-  /// Applied only when a footer button is actually present — the "one-click"
-  /// list mode has none (see [DeviceModal.selectDevice]), and then the
-  /// surface's own [surfaceVerticalPadding] is the only space left below the
-  /// body; see [_DeviceModalSurface].
+  /// Applied only when a footer button is actually present — a "one-click"
+  /// list without a [DeviceModal.secondaryButtonLabel] has none (see
+  /// [DeviceModal.selectDevice]), and then the surface's own
+  /// [surfaceVerticalPadding] is the only space left below the body; see
+  /// [_DeviceModalSurface].
   final double bodyBottomGap;
 
   /// Width of the surface for [DSModalDialogVariant.small], per form factor.
@@ -1057,10 +1183,11 @@ class _DeviceModalSurface extends StatelessWidget {
                     // gutter rather than over the content.
                     padding: theme.surfaceHorizontalPadding.copyWith(
                       top: bodyTopGap,
-                      // No footer toolbar to gap away from ("one-click" list
-                      // mode has none — see DeviceModal.selectDevice): the
-                      // surface's own 24px vertical padding is then the only
-                      // space below the body.
+                      // No footer toolbar to gap away from (a "one-click"
+                      // list with no secondary button has none — see
+                      // DeviceModal.selectDevice): the surface's own 24px
+                      // vertical padding is then the only space below the
+                      // body.
                       bottom: buttons.isEmpty ? 0 : theme.bodyBottomGap,
                     ),
                     slivers: [SliverToBoxAdapter(child: body)],

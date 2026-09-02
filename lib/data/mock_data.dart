@@ -190,8 +190,47 @@ class MockData {
     ),
   ];
 
+  /// The scan modes the scanner's detail view offers, per Figma node
+  /// `40184-46885`.
+  static const List<DeviceDetailItem> _scanModes = [
+    DeviceDetailItem(
+      title: 'Status scan',
+      subline: 'Use for dental check-ups and scanning before surgery.',
+      assetPath: 'assets/scan_modes/status_scan.png',
+    ),
+    DeviceDetailItem(
+      title: 'Treatment scan',
+      subline: 'Use to create a treatment and scan areas relevant to the '
+          'treatment.',
+      assetPath: 'assets/scan_modes/treatment_scan.png',
+    ),
+  ];
+
+  /// The applications the PC/Laptop's detail view lists, per Figma node
+  /// `40184-46884`. Both cards show the machine's own photo, as that node
+  /// does — the applications have no artwork of their own.
+  static const List<DeviceDetailItem> _pcApplications = [
+    DeviceDetailItem(
+      title: 'CEREC',
+      subline: '5.3.1',
+      assetPath: 'assets/devices/pc_laptop.png',
+    ),
+    DeviceDetailItem(
+      title: 'Connect',
+      subline: '5.3.1',
+      assetPath: 'assets/devices/pc_laptop.png',
+    ),
+  ];
+
   /// The devices offered by the "Select device" modal, matching the Figma
-  /// "Modal - Device selection" frame.
+  /// "Modal - Device selection" frames: the two selectable ones the modal
+  /// opens on (node `40250-121538`), followed by the two the "All devices"
+  /// button reveals as disabled cards (node `40428-152410`).
+  ///
+  /// The two selectable ones carry the `detail*` fields of their own detail
+  /// view — Figma nodes `40184-46885` (the scanner) and `40184-46884` (the
+  /// PC/Laptop). The other two have none: they cannot be picked, so their
+  /// detail view is never reached.
   static const List<Device> devices = [
     Device(
       name: 'Primescan 2 Name',
@@ -199,11 +238,44 @@ class MockData {
       assetPath: 'assets/devices/primescan_2.png',
       batteryPercent: 81,
       thumbnailInset: 26,
+      detailSubline: 'SN: 15552561',
+      detailImageInset: 52,
+      detailItems: _scanModes,
     ),
     Device(
       name: 'PC/Laptop Room 4',
       subline: 'CEREC, Connect',
       assetPath: 'assets/devices/pc_laptop.png',
+      detailItems: _pcApplications,
+    ),
+    Device(
+      name: 'Primescan 2 Name',
+      subline: 'SN: 1555260',
+      assetPath: 'assets/devices/primescan_2.png',
+      batteryPercent: 44,
+      status: DeviceStatus.inUse,
+      selectable: false,
+      // Placeholder copy: the Figma node carries only lorem-ipsum, so this is
+      // written to be plausible for the test session, not signed off.
+      statusDescription:
+          'This scanner is currently capturing a scan at another workstation. '
+          'It becomes available once that scan is finished.',
+      statusLinkText: 'Show who is using it',
+      thumbnailInset: 26,
+    ),
+    Device(
+      name: 'Primescan 2 Name',
+      subline: 'SN: 1555259',
+      assetPath: 'assets/devices/primescan_2.png',
+      batteryPercent: 44,
+      status: DeviceStatus.warning,
+      statusLabel: '3 warnings',
+      selectable: false,
+      statusDescription:
+          'This scanner reports 3 warnings that have to be resolved before it '
+          'can capture a scan.',
+      statusLinkText: 'Show the warnings',
+      thumbnailInset: 26,
     ),
   ];
 
