@@ -11,6 +11,21 @@ production use — all patient/treatment data is fictional and hardcoded in
 **Password:** see `lib/auth/auth_state.dart` (client-side check only — not real
 security, just a casual-visitor deterrent while the link is shared for testing).
 
+## Vendored components
+
+`lib/components/device_card/` and `lib/components/device_modal/` are unmodified
+copies of the shared Flutter components from
+[`ds-thomasja/overarching`](https://github.com/ds-thomasja/overarching/tree/main/lib/components),
+vendored because that repo is not a publishable package. Re-copy them from
+`main` rather than editing them here; they are built against
+`lightning_core_ui` v51, this prototype pins v52.
+
+`showCaptureScanModal` (`lib/flows/capture_scan.dart`) is the prototype's own
+glue: it feeds `MockData.devices` into `DeviceModal.selectDevice` for the
+"Capture scan" buttons on the Patient detail and Treatment detail pages. The
+device photos in `assets/devices/` are exported from the Figma frame
+*DI Scan · Projects*, node `40250-121538`.
+
 ## Running locally
 
 ```sh

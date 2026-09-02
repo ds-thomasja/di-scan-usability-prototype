@@ -75,6 +75,11 @@ flutter:
       fonts:
         - asset: packages/lightning_core_ui/src/fonts/Roboto-Regular.ttf
 
+  assets:
+    # Device photos for the "Select device" modal, exported from the Figma
+    # frame (DI Scan · Projects, node 40250-121538).
+    - assets/devices/
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

@@ -5,6 +5,7 @@ import 'package:lightning_core_ui/lightning_core_ui.dart';
 import '../app_router.dart';
 import '../data/mock_data.dart';
 import '../data/models.dart';
+import '../flows/capture_scan.dart';
 import '../shell/app_shell.dart';
 
 /// The patient detail page: header with inert actions plus four tabs
@@ -14,9 +15,10 @@ import '../shell/app_shell.dart';
 /// [Patient.media]. The remaining tabs render a [DSEmptyState] because the
 /// prototype has no order, collaboration or cross-linked treatment data.
 ///
-/// Every header action and every Media-tab toolbar control is deliberately
-/// inert (`onPressed: () {}`): no capture, upload, filter or sort flow exists
-/// in this click-through prototype.
+/// "Capture scan" opens the "Select device" modal (see [showCaptureScanModal]).
+/// Every other header action and every Media-tab toolbar control is
+/// deliberately inert (`onPressed: () {}`): no upload, filter or sort flow
+/// exists in this click-through prototype.
 class PatientDetailPage extends StatelessWidget {
   /// Creates the detail page for the patient identified by [patientId].
   const PatientDetailPage({required this.patientId, super.key});
@@ -58,7 +60,7 @@ class PatientDetailPage extends StatelessWidget {
           subtitle: patient.dateOfBirth,
           onBackPressed: () => context.go(AppRoutes.patients),
           backButtonText: 'Patients',
-          actions: _headerActions(),
+          actions: _headerActions(context),
           tabbedScrollableViews: [
             DSScrollableTabbedView(
               title: 'Media',
@@ -128,12 +130,13 @@ class PatientDetailPage extends StatelessWidget {
     );
   }
 
-  /// The page-header action buttons. All are visually enabled but inert.
-  List<Widget> _headerActions() => [
+  /// The page-header action buttons. All but "Capture scan" are visually
+  /// enabled but inert.
+  List<Widget> _headerActions(BuildContext context) => [
     DSButton.secondary(
       buttonText: 'Capture scan',
       icon: DSIcons.scanUpperJaw,
-      onPressed: () {},
+      onPressed: () => showCaptureScanModal(context),
     ),
     DSActionsButton.secondary(
       buttonText: 'Create',

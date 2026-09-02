@@ -190,6 +190,23 @@ class MockData {
     ),
   ];
 
+  /// The devices offered by the "Select device" modal, matching the Figma
+  /// "Modal - Device selection" frame.
+  static const List<Device> devices = [
+    Device(
+      name: 'Primescan 2 Name',
+      subline: 'SN: 15552561',
+      assetPath: 'assets/devices/primescan_2.png',
+      batteryPercent: 81,
+      thumbnailInset: 26,
+    ),
+    Device(
+      name: 'PC/Laptop Room 4',
+      subline: 'CEREC, Connect',
+      assetPath: 'assets/devices/pc_laptop.png',
+    ),
+  ];
+
   static Patient? patientById(String id) =>
       patients.where((p) => p.id == id).firstOrNull;
 

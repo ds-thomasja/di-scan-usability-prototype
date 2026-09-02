@@ -71,3 +71,32 @@ class Treatment {
   final List<int> selectedTeeth;
   final List<ActivityEntry> activities;
 }
+
+/// A connected device offered by the "Capture scan" → "Select device" modal.
+class Device {
+  const Device({
+    required this.name,
+    required this.subline,
+    required this.assetPath,
+    this.batteryPercent,
+    this.online = true,
+    this.thumbnailInset = 0,
+  });
+
+  final String name;
+  final String subline;
+
+  /// Photo of the device, shown in the card's 120×120 thumbnail slot.
+  final String assetPath;
+
+  /// Battery level in percent, or null for a mains-powered device.
+  final int? batteryPercent;
+  final bool online;
+
+  /// Padding around [assetPath] inside the thumbnail slot, in logical pixels.
+  ///
+  /// The Figma frame scales each device photo differently inside the same
+  /// 120×120 slot — the scanner sits inset, the PC/laptop spans the full
+  /// width — so the inset is carried per device rather than fixed in the view.
+  final double thumbnailInset;
+}

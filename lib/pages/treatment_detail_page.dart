@@ -5,6 +5,7 @@ import 'package:lightning_core_ui/lightning_core_ui.dart';
 import '../app_router.dart';
 import '../data/mock_data.dart';
 import '../data/models.dart';
+import '../flows/capture_scan.dart';
 import '../shell/app_shell.dart';
 
 /// Width of the right-hand "quick view" panel (Activities / Notes).
@@ -63,11 +64,12 @@ class TreatmentDetailPage extends StatelessWidget {
           backButtonText: treatment.patientName,
           onBackPressed: goToPatient,
           actions: [
-            // All header actions are inert in this click-through prototype.
+            // "Capture scan" opens the device-selection modal; every other
+            // header action is inert in this click-through prototype.
             DSButton.secondary(
               buttonText: 'Capture scan',
               icon: DSIcons.scanUpperJaw,
-              onPressed: () {},
+              onPressed: () => showCaptureScanModal(context),
             ),
             DSButton.secondary(
               buttonText: 'Create',
