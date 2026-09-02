@@ -66,13 +66,30 @@ have to be re-applied — or, better, ported upstream — after any re-copy:
   all. `DeviceModalDevice` forwards the new `statusLabel`, `selectable` and
   `notification`, and the modal tracks which single non-selectable card has its
   notification open.
-- `DeviceModal`'s select-mode device list is wrapped in an `AnimatedSize` on the
-  same `deviceRevealDuration`/`deviceRevealCurve`, so growing or shrinking
-  `devices` — what the "All devices" button does — slides the rows in and eases
-  the modal to its new height instead of snapping. The footer button's own label
-  and width still change in one frame; nothing in Figma specifies motion for it,
-  and every way of animating it either clips the label mid-flight or ghosts two
-  buttons over each other.
+- `DeviceModal`'s body is wrapped in an `AnimatedSize` on the same
+  `deviceRevealDuration`/`deviceRevealCurve`, so growing or shrinking `devices`
+  — what the "All devices" button does — slides the rows in and eases the modal
+  to its new height instead of snapping.
+- The switch between the two modes rides that *same* height animation and
+  nothing else: heading, info row, cards and footer button all snap, the
+  surface eases to fit the new mode, and the 240 details image dissolves in
+  over the same reveal (`_FadeInOnMount`) because at that size appearing
+  outright reads as a pop. Growing reveals the taller mode from the top down;
+  shrinking closes over the outgoing one.
+
+  Cross-fading the two modes was tried first and abandoned twice. Fading them
+  simultaneously — the obvious `AnimatedSwitcher` reading — ghosts two dense
+  blocks of text: headings superimposed into illegible glyphs, the device list
+  showing through the details content. (It also needs a custom `layoutBuilder`,
+  since the default sizes to the larger child and so makes the surface jump to
+  the taller mode's height before easing.) Sequencing the fade halves in time
+  fixes the ghosting but still looks unsettled, because every element then
+  moves on its own schedule. Snapping the text is calmer.
+
+  The mode switch is keyed (`ValueKey(details == null)`) so Flutter replaces
+  one body with the other instead of reconciling them child by child — both
+  modes build the same `_Stack`, and without the key the details image would
+  never be freshly mounted and so would never dissolve.
 
 `showCaptureScanModal` (`lib/flows/capture_scan.dart`) is the prototype's own
 glue: it feeds `MockData.devices` into `DeviceModal.selectDevice` for the

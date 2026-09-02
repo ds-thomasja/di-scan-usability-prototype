@@ -585,9 +585,7 @@ class _DeviceModalState extends State<DeviceModal> {
       bodyTopGap: details == null
           ? theme.selectBodyTopGap
           : theme.detailsBodyTopGap,
-      body: details == null
-          ? _buildSelectBody(theme)
-          : _buildDetailsBody(theme, details),
+      body: _buildBody(theme, details),
       buttons: [
         // The optional list-mode toggle, left of the primary button per DS
         // button order — and the only footer button in "one-click" mode.
@@ -620,32 +618,68 @@ class _DeviceModalState extends State<DeviceModal> {
     );
   }
 
+  /// The active mode's body, with both of the things that can change it
+  /// animated on this component's one reveal — the same
+  /// [deviceRevealDuration] and [deviceRevealCurve] a [DeviceCard]'s own
+  /// notification section uses:
+  ///
+  /// - **Its height.** A caller that grows or shrinks [DeviceModal.devices] —
+  ///   as the "All devices" button does — slides the rows into place instead
+  ///   of snapping the modal to a new height. `AnimatedSize` clips to its
+  ///   animating box, so appearing rows are revealed from the bottom edge
+  ///   rather than popping in at full height, and the modal surface follows
+  ///   because it sizes itself to this body. Its first layout is not
+  ///   animated, so the modal still opens at its resting size.
+  /// - **Which mode it is.** Switching between the list and a device's
+  ///   details is the *same* height animation: the new mode's body is built
+  ///   at once, and only the surface easing to fit it carries the motion.
+  ///   Growing reveals the taller mode from the top down; shrinking closes
+  ///   over the outgoing one.
+  ///
+  /// Nothing here cross-fades the two modes, and that is deliberate. Fading
+  /// them through each other — the obvious `AnimatedSwitcher` reading — ghosts
+  /// two dense blocks of text: headings superimposed into illegible glyphs and
+  /// the device list showing through the details content. Sequencing the two
+  /// halves in time fixes the ghosting but leaves the transition looking
+  /// unsettled, because every element moves on its own schedule. Snapping the
+  /// text and animating only the surface is calmer, and it leaves the reveal
+  /// this component already uses for its device list as the one motion it has.
+  ///
+  /// The one exception is the details image, which is large enough that
+  /// appearing outright reads as a pop; it dissolves in over the same reveal.
+  /// See [_FadeInOnMount].
+  ///
+  /// The key is what makes the swap a swap: both modes build the same [_Stack]
+  /// widget, so without it Flutter would reconcile the two bodies child by
+  /// child instead of replacing one with the other — and the details image,
+  /// never freshly mounted, would never dissolve.
+  ///
+  /// The footer button changes label and width in one frame for the reasons
+  /// given on [DeviceModal.secondaryButtonLabel]; with the heading snapping
+  /// too, that is now consistent rather than the exception it was.
+  Widget _buildBody(
+    DeviceModalThemeData theme,
+    DeviceModalDeviceDetails? details,
+  ) =>
+      AnimatedSize(
+        duration: deviceRevealDuration,
+        curve: deviceRevealCurve,
+        alignment: Alignment.topCenter,
+        child: KeyedSubtree(
+          key: ValueKey<bool>(details == null),
+          child: details == null
+              ? _buildSelectList(theme)
+              : _buildDetailsBody(theme, details),
+        ),
+      );
+
   /// The `details=false` body: the optional notification followed by one
-  /// [DeviceCard] per device.
+  /// [DeviceCard] per device, sized to its content; see [_buildBody], which
+  /// animates this list's height.
   ///
   /// When [DeviceModal.selectable] is `true`, tapping a card only moves the
   /// pending highlight. When it is `false` ("one-click" list), tapping a card
   /// calls [DeviceModal.onConfirm] immediately with its index instead.
-  ///
-  /// The list's height is animated, so a caller that grows or shrinks
-  /// [DeviceModal.devices] — as the "All devices" button does — slides the
-  /// rows into place instead of snapping the modal to a new height. It is the
-  /// same reveal a [DeviceCard]'s own notification section uses, at the same
-  /// [deviceRevealDuration] and [deviceRevealCurve]; the modal surface follows
-  /// because it sizes itself to this body.
-  ///
-  /// `AnimatedSize` clips to its animating box, so appearing rows are revealed
-  /// from the bottom edge rather than popping in at full height. Its first
-  /// layout is not animated, so the modal still opens at its resting size.
-  Widget _buildSelectBody(DeviceModalThemeData theme) => AnimatedSize(
-        duration: deviceRevealDuration,
-        curve: deviceRevealCurve,
-        alignment: Alignment.topCenter,
-        child: _buildSelectList(theme),
-      );
-
-  /// The device rows themselves, sized to their content; see
-  /// [_buildSelectBody], which animates this list's height.
   Widget _buildSelectList(DeviceModalThemeData theme) => _Stack(
         defaultSpacing: theme.blockSpacing,
         children: [
@@ -1144,6 +1178,8 @@ class _DeviceModalSurface extends StatelessWidget {
                       Expanded(
                         child: Padding(
                           padding: theme.titlePadding,
+                          // Deliberately not animated across a mode switch:
+                          // see [_DeviceModalState._buildBody].
                           child: Text(
                             title,
                             style: theme.titleTextStyle,
@@ -1352,13 +1388,72 @@ class _DetailsImage extends StatelessWidget {
           // rather than announced as an unlabeled image. Same call
           // [DeviceCard] makes for its thumbnail.
           child: ExcludeSemantics(
-            child: ClipRRect(
-              borderRadius: theme.imageBorderRadius,
-              child: image ?? ColoredBox(color: theme.imagePlaceholderColor),
+            // Dissolved in rather than appearing outright: at 240 square this
+            // is the one element of the details mode big enough to read as a
+            // pop. Wrapping the slot's *content* rather than the slot itself
+            // keeps the 240 square in the layout from the first frame, so the
+            // surface eases to one height instead of chasing a growing child.
+            child: _FadeInOnMount(
+              child: ClipRRect(
+                borderRadius: theme.imageBorderRadius,
+                child: image ?? ColoredBox(color: theme.imagePlaceholderColor),
+              ),
             ),
           ),
         ),
       );
+}
+
+/// Fades [child] in over [deviceRevealDuration] the first time it is built,
+/// and leaves it alone afterwards.
+///
+/// A one-shot entry animation, which is why it is not an [AnimatedOpacity] (it
+/// animates on *change*, and there is no change to react to on the first
+/// frame) nor an [AnimatedSwitcher] (which shows its first child outright).
+/// It only runs when the widget is genuinely mounted, so the caller decides
+/// what counts as an entry — see [_DeviceModalState._buildBody], which keys
+/// the two modes apart so that entering the details mode remounts this.
+///
+/// There is no matching fade *out*: leaving the details mode unmounts the
+/// subtree, and holding it alive purely to fade it would mean keeping the
+/// outgoing mode in the tree and back in the ghosting territory that
+/// [_DeviceModalState._buildBody] describes.
+class _FadeInOnMount extends StatefulWidget {
+  const _FadeInOnMount({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FadeInOnMount> createState() => _FadeInOnMountState();
+}
+
+class _FadeInOnMountState extends State<_FadeInOnMount>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    duration: deviceRevealDuration,
+    vsync: this,
+  );
+
+  late final Animation<double> _opacity = CurvedAnimation(
+    parent: _controller,
+    curve: deviceRevealCurve,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      FadeTransition(opacity: _opacity, child: widget.child);
 }
 
 /// The bordered card holding a [DSProgressBar] and its label.
