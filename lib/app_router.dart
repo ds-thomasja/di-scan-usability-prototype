@@ -7,6 +7,7 @@ import 'pages/home_page.dart';
 import 'pages/patient_detail_page.dart';
 import 'pages/patient_list_page.dart';
 import 'pages/scan_loading_page.dart';
+import 'pages/start_menu_page.dart';
 import 'pages/switch_prototype_page.dart';
 import 'pages/treatment_detail_page.dart';
 import 'pages/treatment_list_page.dart';
@@ -19,7 +20,10 @@ abstract final class AppRoutes {
   /// The password gate. Only reachable while locked.
   static const String login = '/';
 
-  /// The landing page shown right after unlocking.
+  /// The scenario picker the prototype opens on right after unlocking.
+  static const String start = '/start';
+
+  /// The dashboard landing page.
   static const String home = '/home';
 
   /// The patient list.
@@ -65,8 +69,9 @@ final GoRouter appRouter = GoRouter(
     // Locked: everything funnels back to the password gate.
     if (!unlocked && !goingToLogin) return AppRoutes.login;
 
-    // Unlocked: the password gate is pointless, send the user home.
-    if (unlocked && goingToLogin) return AppRoutes.home;
+    // Unlocked: the password gate is pointless, send the user to the start
+    // of the prototype.
+    if (unlocked && goingToLogin) return AppRoutes.start;
 
     return null;
   },
@@ -75,6 +80,14 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.login,
       name: 'login',
       builder: (context, state) => const AuthGate(),
+    ),
+    // Full-screen, like the password gate it follows: it replaces the app
+    // chrome rather than render inside it, so it is not nested under a
+    // content route.
+    GoRoute(
+      path: AppRoutes.start,
+      name: 'start',
+      builder: (context, state) => const StartMenuPage(),
     ),
     GoRoute(
       path: AppRoutes.home,
@@ -112,7 +125,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.scanLoading,
       name: 'scanLoading',
-      builder: (context, state) => const ScanLoadingPage(),
+      // `extra` carries whether to run the "Fetch scan data" step — see
+      // [ScanLoadingPage.includeFetchScanData] — rather than a query
+      // parameter, since it is only ever set by an in-app push, never typed
+      // into the address bar.
+      builder: (context, state) => ScanLoadingPage(
+        includeFetchScanData: state.extra == true,
+      ),
     ),
     GoRoute(
       path: AppRoutes.switchPrototype,

@@ -12,3 +12,7 @@ build/
 .flutter-plugins-dependencies
 *.iml
 .idea/
+flutter_*.log
+
+# Playwright MCP run artifacts (screenshots, console logs, page snapshots)
+.playwright-mcp/

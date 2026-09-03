@@ -37,6 +37,16 @@ enum DeviceCardStatus {
   /// The device reports warnings. Rendered as a warning-styled "Warning" tag;
   /// pass [DeviceCard.statusLabel] to name the count ("3 warnings").
   warning,
+
+  /// The device's calibration is outdated. Rendered as a warning-styled
+  /// "Calibration outdated" tag carrying [DSIcons.warning], per the Figma
+  /// "Notifikationen" device-card states.
+  calibrationOutdated,
+
+  /// The device's firmware is outdated. Rendered as an information-styled
+  /// "Firmware outdated" tag carrying [DSIcons.infoCircle], per the Figma
+  /// "Notifikationen" device-card states.
+  firmwareOutdated,
 }
 
 /// How a [DeviceCardStatus] is presented as a DS status tag.
@@ -54,6 +64,8 @@ extension DeviceCardStatusPresentation on DeviceCardStatus {
         DeviceCardStatus.offline => 'Offline',
         DeviceCardStatus.inUse => 'In use',
         DeviceCardStatus.warning => 'Warning',
+        DeviceCardStatus.calibrationOutdated => 'Calibration outdated',
+        DeviceCardStatus.firmwareOutdated => 'Firmware outdated',
       };
 
   /// The DS status tag styling.
@@ -62,6 +74,20 @@ extension DeviceCardStatusPresentation on DeviceCardStatus {
         DeviceCardStatus.offline => DSStatusTagType.neutral,
         DeviceCardStatus.inUse => DSStatusTagType.information,
         DeviceCardStatus.warning => DSStatusTagType.warning,
+        DeviceCardStatus.calibrationOutdated => DSStatusTagType.warning,
+        DeviceCardStatus.firmwareOutdated => DSStatusTagType.information,
+      };
+
+  /// The icon rendered inline with the tag's label, or null for a text-only
+  /// tag. Only the two "Notifikationen" states carry one, per the Figma node.
+  DSIconRef? get icon => switch (this) {
+        DeviceCardStatus.calibrationOutdated => DSIcons.warning,
+        DeviceCardStatus.firmwareOutdated => DSIcons.infoCircle,
+        DeviceCardStatus.online ||
+        DeviceCardStatus.offline ||
+        DeviceCardStatus.inUse ||
+        DeviceCardStatus.warning =>
+          null,
       };
 }
 
@@ -360,6 +386,7 @@ class DeviceCard extends StatelessWidget {
                             opacity: enabled ? 1 : theme.disabledOpacity,
                             child: DSTag.status(
                               text: statusLabel ?? status.label,
+                              icon: status.icon,
                               statusType: status.tagType,
                             ),
                           ),

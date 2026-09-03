@@ -23,9 +23,19 @@ import '../components/application_loading/application_loading.dart';
 /// The phases are on timers rather than driven by anything real: there is no
 /// scan application behind this prototype, and the point of the screen in the
 /// test session is that the tester sees the wait the design describes.
+///
+/// The treatment-scan flow actually has data to fetch — the treatment just
+/// created, and the reference scan picked for it — so it runs a third step,
+/// "Fetch scan data", between [_Phase.preparingWorkspace] and
+/// [_Phase.startingApplication]. Set [includeFetchScanData] for that flow;
+/// the status-scan flow leaves it off, since a status scan starts from
+/// nothing.
 class ScanLoadingPage extends StatefulWidget {
-  /// Creates the status-scan loading page.
-  const ScanLoadingPage({super.key});
+  /// Creates the scan loading page.
+  const ScanLoadingPage({this.includeFetchScanData = false, super.key});
+
+  /// Whether to run the "Fetch scan data" step. See the class doc.
+  final bool includeFetchScanData;
 
   @override
   State<ScanLoadingPage> createState() => _ScanLoadingPageState();
@@ -39,6 +49,10 @@ enum _Phase {
   /// Figma node `40184-47635`: "Preparing workspace…" is the active step.
   preparingWorkspace,
 
+  /// "Fetch scan data" advanced to active. Only reached when
+  /// [ScanLoadingPage.includeFetchScanData] is set.
+  fetchingScanData,
+
   /// The same screen with "Start application" advanced to active.
   startingApplication,
 }
@@ -47,10 +61,15 @@ class _ScanLoadingPageState extends State<ScanLoadingPage> {
   /// How long the bare spinner is shown before the loading screen appears.
   static const Duration _bootingDuration = Duration(seconds: 2);
 
-  /// How long each of the loading screen's two steps stays active. Together
-  /// they are the four seconds the loading screen is on display.
+  /// How long each of the loading screen's steps stays active.
   static const Duration _preparingDuration = Duration(seconds: 2);
+  static const Duration _fetchingDuration = Duration(seconds: 2);
   static const Duration _startingDuration = Duration(seconds: 2);
+
+  /// The pause once "Start application" has run its course and the load is
+  /// done, before the page leaves. Without it the last step's active state is
+  /// replaced the instant it is reached, which reads as a skipped step.
+  static const Duration _readyHold = Duration(milliseconds: 800);
 
   /// The scheduled phase changes, kept so they can be cancelled — both by
   /// [dispose] and by "Cancel loading" leaving the page early.
@@ -62,11 +81,25 @@ class _ScanLoadingPageState extends State<ScanLoadingPage> {
   void initState() {
     super.initState();
     _after(_bootingDuration, () => _enter(_Phase.preparingWorkspace));
+
+    // The fetch step only exists on the treatment-scan flow; skipping it here
+    // means [_Phase.fetchingScanData] is simply never entered on the
+    // status-scan flow, rather than needing a second, near-identical
+    // schedule.
+    Duration untilStartingApplication =
+        _bootingDuration + _preparingDuration;
+    if (widget.includeFetchScanData) {
+      _after(untilStartingApplication, () => _enter(_Phase.fetchingScanData));
+      untilStartingApplication += _fetchingDuration;
+    }
     _after(
-      _bootingDuration + _preparingDuration,
+      untilStartingApplication,
       () => _enter(_Phase.startingApplication),
     );
-    _after(_bootingDuration + _preparingDuration + _startingDuration, _finish);
+    _after(
+      untilStartingApplication + _startingDuration + _readyHold,
+      _finish,
+    );
   }
 
   @override
@@ -103,27 +136,22 @@ class _ScanLoadingPageState extends State<ScanLoadingPage> {
     }
   }
 
-  /// The two steps of Figma node `40184-47635`, typed for [phase].
-  List<DSTimelineStep> _steps(_Phase phase) => [
-        loadingStep(
-          switch (phase) {
-            _Phase.booting ||
-            _Phase.preparingWorkspace =>
-              DSTimelineStepType.active,
-            _Phase.startingApplication => DSTimelineStepType.completed,
-          },
-          'Preparing workspace…',
-        ),
-        loadingStep(
-          switch (phase) {
-            _Phase.booting ||
-            _Phase.preparingWorkspace =>
-              DSTimelineStepType.future,
-            _Phase.startingApplication => DSTimelineStepType.active,
-          },
-          'Start application',
-        ),
-      ];
+  /// The steps of Figma node `40184-47635`, typed for [phase] — two of them,
+  /// or three when [ScanLoadingPage.includeFetchScanData] is set.
+  List<DSTimelineStep> _steps(_Phase phase) {
+    DSTimelineStepType typeFor(_Phase reachedAt) {
+      if (phase.index < reachedAt.index) return DSTimelineStepType.future;
+      if (phase.index == reachedAt.index) return DSTimelineStepType.active;
+      return DSTimelineStepType.completed;
+    }
+
+    return [
+      loadingStep(typeFor(_Phase.preparingWorkspace), 'Preparing workspace…'),
+      if (widget.includeFetchScanData)
+        loadingStep(typeFor(_Phase.fetchingScanData), 'Fetch scan data'),
+      loadingStep(typeFor(_Phase.startingApplication), 'Start application'),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

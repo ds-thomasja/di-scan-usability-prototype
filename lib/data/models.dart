@@ -57,6 +57,7 @@ class Treatment {
     required this.lastActivity,
     this.selectedTeeth = const [],
     this.activities = const [],
+    this.media = const [],
   });
 
   final String id;
@@ -70,6 +71,7 @@ class Treatment {
   final String lastActivity;
   final List<int> selectedTeeth;
   final List<ActivityEntry> activities;
+  final List<MediaItem> media;
 }
 
 /// The availability of a [Device], shown as the device card's status tag.
@@ -77,7 +79,20 @@ class Treatment {
 /// Mirrors the states the Figma "Select device" frames show. Kept free of
 /// `DeviceCardStatus` so this data layer stays independent of the vendored
 /// components; `lib/flows/capture_scan.dart` maps between the two.
-enum DeviceStatus { online, offline, inUse, warning }
+enum DeviceStatus {
+  online,
+  offline,
+  inUse,
+  warning,
+
+  /// The device's calibration is outdated — the "Notifikationen" scenario's
+  /// counterpart to [warning]. See [DeviceCardStatus.calibrationOutdated].
+  calibrationOutdated,
+
+  /// The device's firmware is outdated — the "Notifikationen" scenario's
+  /// other new state. See [DeviceCardStatus.firmwareOutdated].
+  firmwareOutdated,
+}
 
 /// What activating a [DeviceDetailItem]'s card does.
 ///
@@ -90,6 +105,66 @@ enum DeviceDetailAction {
   /// "Switch prototype" signpost that hands the tester to the other
   /// prototype.
   statusScan,
+
+  /// Starts the treatment-scan flow: the "New treatment" modal, then
+  /// "Use a previous scan as a reference", then the same app-loading wait
+  /// [statusScan] ends on — with an extra "Fetch scan data" step, since this
+  /// flow actually has scan data belonging to the new treatment to fetch.
+  treatmentScan,
+}
+
+/// One tile of the "New treatment" modal's "Treatment option" picker.
+///
+/// Figma node `40275-781084`. The tiles are a fixed set for this
+/// click-through prototype — there is no real treatment-type catalog behind
+/// them — so this only carries what a tile shows.
+class TreatmentOption {
+  const TreatmentOption({required this.label, this.assetPath});
+
+  /// The tile's caption, e.g. "Restoration".
+  final String label;
+
+  /// Image shown above [label], in the tile's 16:9 slot. Null renders the
+  /// tile with an empty image area — the Figma node's own sixth tile
+  /// ("Splint", repeated) carries no artwork either.
+  final String? assetPath;
+}
+
+/// One item of the "Use a previous scan as a reference" modal's scan
+/// picker, grouped under a [ReferenceScanGroup].
+///
+/// Figma node `40184-58978`.
+class ReferenceScan {
+  const ReferenceScan({
+    required this.title,
+    required this.timestamp,
+    required this.assetPath,
+    required this.viewAssetPaths,
+  });
+
+  /// The scan's kind, e.g. "Status scan" — reuses the same copy
+  /// [DeviceDetailItem] scan modes use.
+  final String title;
+
+  /// When the scan was captured, exactly as the Figma node states it.
+  final String timestamp;
+
+  /// The scan's thumbnail, shown at 1:1 in the picker's gallery.
+  final String assetPath;
+
+  /// The image shown in the preview for each of the six view-angle
+  /// segments, in the same order those segments are offered in: arch
+  /// upper, buccal right, buccal left, bite closed, contact visualisation,
+  /// bite open.
+  final List<String> viewAssetPaths;
+}
+
+/// A named group of [ReferenceScan]s, e.g. "Latest" or "Older than 4 weeks".
+class ReferenceScanGroup {
+  const ReferenceScanGroup({required this.title, required this.scans});
+
+  final String title;
+  final List<ReferenceScan> scans;
 }
 
 /// One card of a [Device]'s detail view: what the device can do, or what runs

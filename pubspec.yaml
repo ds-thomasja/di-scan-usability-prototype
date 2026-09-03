@@ -88,6 +88,14 @@ flutter:
     # `lib/components/application_loading/` from `ds-thomasja/di-scan`, at the
     # path that component hardcodes.
     - assets/images/primescan_device_progress_circle.png
+    # Treatment-option tile artwork for the "New treatment" modal, exported
+    # from Figma node 40275-781084.
+    - assets/treatment_options/
+    # Scan thumbnails for the "Use a previous scan as a reference" modal,
+    # exported from Figma node 40184-58978.
+    - assets/reference_scans/
+    # DI scan renders shown in the patient/treatment Media tab's grid.
+    - assets/media/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

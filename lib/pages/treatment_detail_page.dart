@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lightning_core_ui/lightning_core_ui.dart';
 
 import '../app_router.dart';
+import '../components/media_grid/media_grid.dart';
 import '../data/mock_data.dart';
 import '../data/models.dart';
 import '../flows/capture_scan.dart';
@@ -110,14 +111,7 @@ class TreatmentDetailPage extends StatelessWidget {
                 SliverToBoxAdapter(
                   child: _TabBodyWithQuickView(
                     treatment: treatment,
-                    content: const DSContainer(
-                      child: DSEmptyState(
-                        size: DSEmptyStateSize.large,
-                        headline: 'No media yet',
-                        body: 'Scans and images captured for this treatment '
-                            'will show here.',
-                      ),
-                    ),
+                    content: _MediaTabContent(media: treatment.media),
                   ),
                 ),
               ],
@@ -233,6 +227,51 @@ class _SummaryCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The "Medias" tab body: the same media grid the patient detail page's
+/// Media tab shows, scoped to [Treatment.media].
+///
+/// [MediaGridSliver] is a sliver widget, so it is wrapped in a `shrinkWrap`
+/// [CustomScrollView] here rather than placed directly in [content] — this
+/// tab's slot is a box context (the [_TabBodyWithQuickView] row), not a
+/// sliver one.
+class _MediaTabContent extends StatelessWidget {
+  const _MediaTabContent({required this.media});
+
+  final List<MediaItem> media;
+
+  @override
+  Widget build(BuildContext context) {
+    if (media.isEmpty) {
+      return const DSContainer(
+        child: DSEmptyState(
+          size: DSEmptyStateSize.large,
+          headline: 'No media yet',
+          body: 'Scans and images captured for this treatment will show '
+              'here.',
+        ),
+      );
+    }
+
+    final tokens = DSTokens.of(context);
+
+    return DSContainer(
+      child: CustomScrollView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: MediaSectionHeading(label: 'Media', count: media.length),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(height: tokens.spacing.layout.s),
+          ),
+          MediaGridSliver(media: media),
         ],
       ),
     );

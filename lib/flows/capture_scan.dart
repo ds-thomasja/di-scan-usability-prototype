@@ -5,26 +5,21 @@ import 'package:lightning_core_ui/lightning_core_ui.dart';
 import '../app_router.dart';
 import '../components/device_card/device_card.dart';
 import '../components/device_modal/device_modal.dart';
+import '../data/device_scenario.dart';
 import '../data/mock_data.dart';
 import '../data/models.dart';
-
-/// Label of the footer button while only the selectable devices are listed.
-const String _showAllLabel = 'All devices';
-
-/// Label of the same button once the full list is shown.
-const String _showSelectableOnlyLabel = 'Selectable devices only';
+import 'create_treatment.dart';
 
 /// Opens the "Select device" modal that every "Capture scan" button leads to.
 ///
 /// Matches the Figma frame *DI Scan · Projects*, in all four of its states:
 ///
-/// - node `40250-121538` — a one-click list of the selectable devices plus an
-///   "All devices" button bottom right;
-/// - node `40428-152410` — that button pressed: the devices that cannot be
-///   picked (in use, or reporting warnings) join the list, rendered with a
-///   dimmed thumbnail, and the button becomes "Selectable devices only".
-///   Tapping one of those opens the in-card notification explaining why it
-///   cannot be picked, per Figma "Device card" node `5389:18149`.
+/// - node `40250-121538` — a one-click list of the selectable devices;
+/// - node `40428-152410` — the devices that cannot be picked (in use, or
+///   reporting warnings) join the list, rendered with a dimmed thumbnail, and
+///   are always shown alongside the selectable ones. Tapping one of those
+///   opens the in-card notification explaining why it cannot be picked, per
+///   Figma "Device card" node `5389:18149`.
 /// - nodes `40184-46885` and `40184-46884` — the detail view a picked device
 ///   switches the modal to: that device's own header, its photo, and the cards
 ///   listing what it offers. "Switch device" returns to the list.
@@ -36,6 +31,12 @@ const String _showSelectableOnlyLabel = 'Selectable devices only';
 /// One of the detail view's cards continues the flow: "Status scan" closes
 /// the modal and pushes [AppRoutes.scanLoading]. The others are dead ends —
 /// see [_buildDetailsView].
+///
+/// Which devices and states the list shows depends on [DeviceScenarioState]:
+/// [MockData.devices] for the "Scans" scenario, or
+/// [MockData.notificationDevices] — outdated calibration/firmware tags in
+/// place of "in use"/"warning" — for "Notifikationen". Both scenarios reuse
+/// this exact same modal; see [DeviceScenario].
 ///
 /// The returned future completes once the modal has closed and any flow it
 /// started has been navigated to.
@@ -55,16 +56,16 @@ Future<void> showCaptureScanModal(BuildContext context) async {
     // has this page to return to.
     case DeviceDetailAction.statusScan:
       context.push(AppRoutes.scanLoading);
+    // Two more modals first — "New treatment", then "Use a previous scan as
+    // a reference" — both entirely independent of the one that just closed;
+    // see [showTreatmentScanFlow].
+    case DeviceDetailAction.treatmentScan:
+      await showTreatmentScanFlow(context);
   }
 }
 
-/// Holds which of the modal's two views is on screen, and the "All devices"
-/// toggle of the list view, for the duration of the modal.
-///
-/// Both live here rather than in [DeviceModal] because both are the caller's:
-/// the component renders one view or the other from the constructor it is
-/// given, and the filtering the button stands for is a property of the data,
-/// not of the modal.
+/// Holds which of the modal's two views is on screen, for the duration of the
+/// modal.
 class _CaptureScanModal extends StatefulWidget {
   const _CaptureScanModal({required this.pop});
 
@@ -76,11 +77,17 @@ class _CaptureScanModal extends StatefulWidget {
 }
 
 class _CaptureScanModalState extends State<_CaptureScanModal> {
-  /// Whether the non-selectable devices are listed too.
-  bool _showAll = false;
+  /// The device list backing this instance of the modal: [MockData.devices]
+  /// or [MockData.notificationDevices], per whichever [DeviceScenario] the
+  /// tester picked on [StartMenuPage]. Read once — like the scenario itself,
+  /// nothing changes it while the modal is open.
+  late final List<Device> _devices = switch (DeviceScenarioState.current) {
+    DeviceScenario.scans => MockData.devices,
+    DeviceScenario.notifications => MockData.notificationDevices,
+  };
 
-  /// The index into [MockData.devices] of the device whose detail view is
-  /// showing, or null while the list view is.
+  /// The index into [_devices] of the device whose detail view is showing, or
+  /// null while the list view is.
   int? _openedIndex;
 
   @override
@@ -93,26 +100,15 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
 
   /// The device list the modal opens on. Tapping a card shows that device's
   /// detail view rather than closing the modal.
-  Widget _buildSelectView() {
-    // The devices actually on screen, and their positions in the full list, so
-    // a tap can be resolved against MockData.devices rather than the subset.
-    final shown = <(int, Device)>[
-      for (var i = 0; i < MockData.devices.length; i++)
-        if (_showAll || MockData.devices[i].selectable) (i, MockData.devices[i]),
-    ];
-
-    return DeviceModal.selectDevice(
-      devices: [for (final (_, device) in shown) _toModalDevice(device)],
-      // The Figma frame shows no Confirm button: one tap picks the device.
-      selectable: false,
-      onClose: widget.pop,
-      onConfirm: (index) => setState(() {
-        _openedIndex = index == null ? null : shown[index].$1;
-      }),
-      secondaryLabel: _showAll ? _showSelectableOnlyLabel : _showAllLabel,
-      onSecondaryPressed: () => setState(() => _showAll = !_showAll),
-    );
-  }
+  Widget _buildSelectView() => DeviceModal.selectDevice(
+        devices: [for (final device in _devices) _toModalDevice(device)],
+        // The Figma frame shows no Confirm button: one tap picks the device.
+        selectable: false,
+        onClose: widget.pop,
+        onConfirm: (index) => setState(() {
+          _openedIndex = index;
+        }),
+      );
 
   /// The detail view of [index]'s device, per its Figma node.
   ///
@@ -124,7 +120,7 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
   /// hover. Same call as the in-card notification link below: a dead end that
   /// looks like the design beats one that reads as broken.
   Widget _buildDetailsView(int index) {
-    final device = MockData.devices[index];
+    final device = _devices[index];
 
     return DeviceModal.deviceDetails(
       device: DeviceModalDeviceDetails(
@@ -201,4 +197,6 @@ DeviceCardStatus _toCardStatus(DeviceStatus status) => switch (status) {
   DeviceStatus.offline => DeviceCardStatus.offline,
   DeviceStatus.inUse => DeviceCardStatus.inUse,
   DeviceStatus.warning => DeviceCardStatus.warning,
+  DeviceStatus.calibrationOutdated => DeviceCardStatus.calibrationOutdated,
+  DeviceStatus.firmwareOutdated => DeviceCardStatus.firmwareOutdated,
 };

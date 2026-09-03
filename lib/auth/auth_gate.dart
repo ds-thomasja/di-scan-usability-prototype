@@ -12,7 +12,7 @@ import 'auth_state.dart';
 /// visitors out of the shared usability-test prototype.
 ///
 /// On success it calls [AuthState.tryUnlock] and navigates to
-/// [AppRoutes.home]. The router's redirect would do the same on its own
+/// [AppRoutes.start]. The router's redirect would do the same on its own
 /// (via `refreshListenable`), but navigating explicitly keeps the flow
 /// obvious.
 ///
@@ -64,7 +64,7 @@ class _AuthGateState extends State<AuthGate> {
       // Hands the entry to the browser's password manager before the field
       // leaves the tree, which is what prompts the "save password?" offer.
       TextInput.finishAutofillContext();
-      context.go(AppRoutes.home);
+      context.go(AppRoutes.start);
       return;
     }
 

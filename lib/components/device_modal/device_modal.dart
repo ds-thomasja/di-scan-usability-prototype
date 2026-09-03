@@ -1331,7 +1331,11 @@ class _DetailsInfoRow extends StatelessWidget {
           lowLevelThreshold: details.lowBatteryThreshold,
         ),
       if (status != null)
-        DSTag.status(text: status.label, statusType: status.tagType),
+        DSTag.status(
+          text: status.label,
+          icon: status.icon,
+          statusType: status.tagType,
+        ),
     ];
 
     return Wrap(

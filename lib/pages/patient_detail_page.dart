@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lightning_core_ui/lightning_core_ui.dart';
 
 import '../app_router.dart';
+import '../components/media_grid/media_grid.dart';
 import '../data/mock_data.dart';
-import '../data/models.dart';
 import '../flows/capture_scan.dart';
 import '../shell/app_shell.dart';
 
@@ -70,13 +70,13 @@ class PatientDetailPage extends StatelessWidget {
                 DSSliversContainer(
                   slivers: [
                     SliverToBoxAdapter(
-                      child: _SectionHeading(
+                      child: MediaSectionHeading(
                         label: 'Last 3 months',
                         count: patient.media.length,
                       ),
                     ),
                     SliverToBoxAdapter(child: _LayoutSGap()),
-                    _MediaGridSliver(media: patient.media),
+                    MediaGridSliver(media: patient.media),
                   ],
                 ),
               ],
@@ -226,111 +226,6 @@ class _MediaToolbar extends StatelessWidget {
       ],
     );
   }
-}
-
-/// The "Last 3 months (7)" group heading above the media grid.
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({required this.label, required this.count});
-
-  final String label;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DSTokens.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Flexible(child: DSText(label, style: tokens.text.headingBase)),
-        SizedBox(width: tokens.spacing.component.xxs),
-        DSText(
-          '($count)',
-          style: tokens.text.textLg.copyWith(color: tokens.text.subdued),
-        ),
-      ],
-    );
-  }
-}
-
-/// The responsive grid of media tiles, owning the tile selection state.
-///
-/// Selection is the one genuinely interactive part of this tab: the checkbox
-/// on each tile toggles, and once anything is selected a plain tap on a tile
-/// toggles it too (DS multi-select behaviour). Everything else is inert.
-class _MediaGridSliver extends StatefulWidget {
-  const _MediaGridSliver({required this.media});
-
-  final List<MediaItem> media;
-
-  @override
-  State<_MediaGridSliver> createState() => _MediaGridSliverState();
-}
-
-class _MediaGridSliverState extends State<_MediaGridSliver> {
-  final Set<int> _selected = <int>{};
-
-  void _toggle(int index, bool value) => setState(() {
-    if (value) {
-      _selected.add(index);
-    } else {
-      _selected.remove(index);
-    }
-  });
-
-  @override
-  Widget build(BuildContext context) => DSMediaTileSliverGrid(
-    tileCount: widget.media.length,
-    tileBuilder: (context, index) {
-      final item = widget.media[index];
-      return DSMediaTile(
-        title: item.title,
-        subtitle: item.timestamp,
-        typeTagText: item.tag,
-        // MediaItem.assetPath points at files that do not exist in this
-        // prototype, so no imageProvider/imageWidget is supplied. DSMediaTile
-        // then renders its own token-styled placeholder surface with the
-        // icon below, and no asset load is ever attempted.
-        placeholderParams: DSMediaTilePlaceholderParams(
-          icon: _placeholderIconFor(item.tag),
-        ),
-        selected: _selected.contains(index),
-        selectionMode: _selected.isNotEmpty,
-        onSelectedChanged: (value) => _toggle(index, value),
-        onPressed: () {},
-        actions: [
-          [
-            DSAction(
-              title: 'Open in Canvas',
-              icon: DSIcons.canvas,
-              onTrigger: () {},
-            ),
-            DSAction(
-              title: 'Download',
-              icon: DSIcons.download,
-              onTrigger: () {},
-            ),
-            DSAction(title: 'Share', icon: DSIcons.share, onTrigger: () {}),
-          ],
-          [
-            DSAction(
-              title: 'Delete',
-              icon: DSIcons.trash,
-              destructive: true,
-              onTrigger: () {},
-            ),
-          ],
-        ],
-      );
-    },
-  );
-
-  /// Picks a placeholder icon from the tile's tag, e.g. `DI · 7`, `PHOTO · 12`.
-  static DSIconRef _placeholderIconFor(String? tag) =>
-      (tag ?? '').toUpperCase().startsWith('PHOTO')
-      ? DSIcons.image
-      : DSIcons.jawFull;
 }
 
 /// A vertical gap of `spacing.layout.s`, for use inside sliver lists where

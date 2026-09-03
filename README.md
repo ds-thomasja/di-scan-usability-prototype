@@ -1,15 +1,27 @@
 # DI Scan — usability-test prototype
 
-A password-gated, click-through Flutter web prototype covering five screens
-(Home, Patient list, Patient detail, Treatment list, Treatment detail) built
-with Dentsply Sirona's DS Core design system (`lightning_core_ui`), matching
-the Figma reference frames. Built for a usability-testing session, not for
-production use — all patient/treatment data is fictional and hardcoded in
-`lib/data/mock_data.dart`.
+A password-gated, click-through Flutter web prototype covering six screens
+(Start, Home, Patient list, Patient detail, Treatment list, Treatment detail)
+built with Dentsply Sirona's DS Core design system (`lightning_core_ui`),
+matching the Figma reference frames. Built for a usability-testing session,
+not for production use — all patient/treatment data is fictional and
+hardcoded in `lib/data/mock_data.dart`.
 
 **Live URL:** https://ds-thomasja.github.io/di-scan-usability-prototype/
 **Password:** see `lib/auth/auth_state.dart` (client-side check only — not real
 security, just a casual-visitor deterrent while the link is shared for testing).
+
+## Screens
+
+`StartMenuPage` (`lib/pages/start_menu_page.dart`, `/start`) is what the
+prototype opens on once unlocked — Figma node `40532-88315` ("Home"): the DS
+logo over a two-row menu, one row per usability-test scenario this session
+covers. Only **"Scans"** is wired up, going to the dashboard (`HomePage`,
+`/home`) from which the status/treatment-scan flow it describes is reachable
+via a patient's or treatment's "Capture scan" button. **"Notifikationen"** has
+no flow built yet, so its row has no `onPressed` — its trailing chevron still
+fires a no-op rather than being left disabled, the same call as the dead
+notification link described below.
 
 ## Vendored components
 
@@ -146,10 +158,30 @@ because there is no scan application behind it:
 | Bare spinner (`appReady: false`) | 2s | `40601-127415` |
 | "Preparing workspace…" active | 2s | `40184-47635` |
 | "Start application" active | 2s | (the same node, advanced) |
+| The finished load, held | 800ms | (the same node) |
 
-then `pushReplacement` to `/switch-prototype`. `SwitchPrototypePage`
+then `pushReplacement` to `/switch-prototype`. The 800ms hold keeps the last
+step's active state on screen for a beat instead of replacing it the instant it
+is reached. `SwitchPrototypePage`
 (node `40255-18049`) is the dead-end signpost that sends the tester to the
-other browser window; it has no actions, because the design has none. The
+other browser window; it has no actions for the tester, because the design has
+none. It does carry one for the facilitator: an unmarked 96px square in its
+top-left corner that restarts the prototype for the next participant without
+touching the URL bar. Unmarked deliberately — a visible "Start over" would read
+as the way on.
+
+That restart is a *full browser reload* (`lib/restart/`, the same
+conditional-export arrangement as `lib/auth/remember_store.dart` because
+`package:web` cannot compile on the VM that `flutter test` runs on), not a
+`context.go` to `/start`: a route change would leave the collapsed state of the
+main menu behind, since `DSScaffoldPersistentStateProvider` sits above the
+router in `main.dart`. It reloads the app's own URL with the route fragment
+dropped, which lands on `initialLocation` — and, because a fragment-less target
+is a real document load where a fragment-only change would be an in-page jump,
+is what makes it reload at all. One consequence: the reload only lands straight
+on `/start` while the gate's "Stay unlocked on this browser" box was ticked when
+the prototype was unlocked — which it is by default. Unticked, the restart shows
+the password gate again. The
 route is *pushed* rather than gone to so that "Cancel loading" — whose
 documented target is the page DI Scan was started from — is a plain `pop` back
 to the Patient or Treatment detail page underneath (with a fallback to home,

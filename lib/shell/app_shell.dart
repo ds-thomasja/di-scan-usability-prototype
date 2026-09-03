@@ -120,14 +120,21 @@ class AppShell extends StatelessWidget {
           // Per DSScaffold's docs, a DSUserMenuButton must be the last action.
           DSUserMenuButton(
             userInitials: 'UN',
-            builder: (context) => const DSUserMenu.fromModel(
+            builder: (context) => DSUserMenu.fromModel(
               userName: 'Test User',
               userAdditionalInfo: 'Dentsply Sirona',
               userInitials: 'UN',
               items: [
-                DSUserMenuItem(label: 'Profile', icon: DSIcons.user),
-                DSUserMenuItem(label: 'Settings', icon: DSIcons.settingsCog),
-                DSUserMenuItem(label: 'Log out', icon: DSIcons.logout),
+                const DSUserMenuItem(label: 'Profile', icon: DSIcons.user),
+                const DSUserMenuItem(
+                  label: 'Settings',
+                  icon: DSIcons.settingsCog,
+                ),
+                DSUserMenuItem(
+                  label: 'Log out',
+                  icon: DSIcons.logout,
+                  onPressed: () => context.go(AppRoutes.start),
+                ),
               ],
             ),
           ),
