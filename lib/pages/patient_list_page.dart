@@ -60,7 +60,7 @@ class _PatientListPageState extends State<PatientListPage> {
         // action is collapsed into that menu.
         actions: [
           DSAction(
-            title: 'View details',
+            title: 'Details anzeigen',
             icon: DSIcons.open,
             onTrigger: () => _openPatient(patient),
           ),
@@ -85,11 +85,11 @@ class _PatientListPageState extends State<PatientListPage> {
       // and wraps its own bodySlivers in a DSSliverResponsiveBody for margins.
       bodySlivers: [
         DSSliverScrollablePage(
-          title: 'Patients',
-          subtitle: 'View, manage, and add new patients here.',
+          title: 'Patienten',
+          subtitle: 'Patienten hier anzeigen, verwalten und neu anlegen.',
           actions: [
             DSButton.primary(
-              buttonText: 'Create patient',
+              buttonText: 'Patient erstellen',
               icon: DSIcons.add,
               // Inert: no create-patient flow exists in this prototype.
               onPressed: () {},
@@ -106,7 +106,7 @@ class _PatientListPageState extends State<PatientListPage> {
                       maxWidth: _searchFieldMaxWidth,
                     ),
                     child: DSSearchField<String>(
-                      hintText: 'Search',
+                      hintText: 'Suchen',
                       // Filter as the user types; `onSearch` additionally
                       // covers Enter and the clear (x) button.
                       onChanged: _onQueryChanged,
@@ -120,9 +120,9 @@ class _PatientListPageState extends State<PatientListPage> {
               SliverToBoxAdapter(
                 child: DSEmptyState(
                   size: DSEmptyStateSize.large,
-                  headline: 'No patients found',
-                  body: 'No patient matches your search. '
-                      'Try a different name.',
+                  headline: 'Keine Patienten gefunden',
+                  body: 'Kein Patient entspricht Ihrer Suche. '
+                      'Versuchen Sie einen anderen Namen.',
                   illustration: DSSpotIllustrations.patients,
                 ),
               )
@@ -132,9 +132,9 @@ class _PatientListPageState extends State<PatientListPage> {
                 // it does not need to be wrapped in a DSSliversContainer.
                 columns: const [
                   DSTableColumn(title: 'Name'),
-                  DSTableColumn(title: 'Card ID'),
-                  DSTableColumn(title: 'Date of birth'),
-                  DSTableColumn(title: 'Creation date'),
+                  DSTableColumn(title: 'Karten-ID'),
+                  DSTableColumn(title: 'Geburtsdatum'),
+                  DSTableColumn(title: 'Erstellungsdatum'),
                 ],
                 rows: [for (final patient in patients) _buildRow(patient)],
               ),

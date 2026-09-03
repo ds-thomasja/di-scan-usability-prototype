@@ -61,14 +61,14 @@ class _TreatmentListPageState extends State<TreatmentListPage> {
       selectedItem: AppShellItem.treatments,
       bodySlivers: [
         DSSliverScrollablePage(
-          title: 'Treatments',
-          subtitle: 'Manage all of your treatments from one place.',
+          title: 'Behandlungen',
+          subtitle: 'Verwalten Sie alle Ihre Behandlungen an einem Ort.',
           actions: [
             // Inert: the prototype has no create-treatment flow. A null
             // `onPressed` would render the button disabled, which is not what
             // the design shows.
             DSButton.primary(
-              buttonText: 'New treatment',
+              buttonText: 'Neue Behandlung',
               icon: DSIcons.add,
               onPressed: () {},
             ),
@@ -85,9 +85,9 @@ class _TreatmentListPageState extends State<TreatmentListPage> {
                   SliverToBoxAdapter(
                     child: DSEmptyState(
                       size: DSEmptyStateSize.large,
-                      headline: 'No treatments found',
-                      body: 'No treatment matches the treatment ID you '
-                          'searched for. Try a different ID.',
+                      headline: 'Keine Behandlungen gefunden',
+                      body: 'Keine Behandlung entspricht der gesuchten '
+                          'Behandlungs-ID. Versuchen Sie eine andere ID.',
                       illustration: DSSpotIllustrations.treatments,
                     ),
                   ),
@@ -99,12 +99,12 @@ class _TreatmentListPageState extends State<TreatmentListPage> {
               DSSliverTable(
                 columns: const [
                   DSTableColumn(title: 'Patient'),
-                  DSTableColumn(title: 'Treatment ID'),
-                  DSTableColumn(title: 'Service'),
-                  DSTableColumn(title: 'Teeth'),
-                  DSTableColumn(title: 'Created on'),
-                  DSTableColumn(title: 'Created by'),
-                  DSTableColumn(title: 'Last activity'),
+                  DSTableColumn(title: 'Behandlungs-ID'),
+                  DSTableColumn(title: 'Leistung'),
+                  DSTableColumn(title: 'Zähne'),
+                  DSTableColumn(title: 'Erstellt am'),
+                  DSTableColumn(title: 'Erstellt von'),
+                  DSTableColumn(title: 'Letzte Aktivität'),
                 ],
                 rows: [
                   for (final treatment in treatments)
@@ -116,7 +116,7 @@ class _TreatmentListPageState extends State<TreatmentListPage> {
                       // action column in the design.
                       actions: [
                         DSAction(
-                          title: 'View details',
+                          title: 'Details anzeigen',
                           icon: DSIcons.open,
                           onTrigger: () {},
                         ),
@@ -165,7 +165,7 @@ class _TreatmentListToolbar extends StatelessWidget {
     final region = DSRegion.of(context);
 
     final countLabel = '${region.formatDecimal(resultCount)} '
-        '${resultCount == 1 ? 'treatment' : 'treatments'}';
+        '${resultCount == 1 ? 'Behandlung' : 'Behandlungen'}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -176,7 +176,7 @@ class _TreatmentListToolbar extends StatelessWidget {
             width: _searchFieldWidth,
             child: DSSearchField<String>(
               controller: searchController,
-              hintText: 'Search by Treatment ID',
+              hintText: 'Nach Behandlungs-ID suchen',
               // `onChanged` filters live while typing; `onSearch` covers the
               // enter key and the clear (x) button, which submits an empty
               // string.
@@ -188,13 +188,13 @@ class _TreatmentListToolbar extends StatelessWidget {
         const DSSpacing.layoutXs(),
         Row(
           children: [
-            const _InertFilterButton(label: 'All services'),
+            const _InertFilterButton(label: 'Alle Leistungen'),
             const DSSpacing.componentM(),
-            const _InertFilterButton(label: 'Teeth'),
+            const _InertFilterButton(label: 'Zähne'),
             const DSSpacing.componentM(),
-            const _InertFilterButton(label: 'Creation date'),
+            const _InertFilterButton(label: 'Erstellungsdatum'),
             const DSSpacing.componentM(),
-            const _InertFilterButton(label: 'Last activity'),
+            const _InertFilterButton(label: 'Letzte Aktivität'),
             const Spacer(),
             DSText(
               countLabel,

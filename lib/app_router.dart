@@ -3,7 +3,12 @@ import 'package:go_router/go_router.dart';
 
 import 'auth/auth_gate.dart';
 import 'auth/auth_state.dart';
+import 'pages/collaboration_page.dart';
+import 'pages/equipment_page.dart';
+import 'pages/files_page.dart';
 import 'pages/home_page.dart';
+import 'pages/jobs_page.dart';
+import 'pages/orders_page.dart';
 import 'pages/patient_detail_page.dart';
 import 'pages/patient_list_page.dart';
 import 'pages/scan_loading_page.dart';
@@ -32,11 +37,26 @@ abstract final class AppRoutes {
   /// A single patient's detail page. Append `/<id>`.
   static const String patientDetail = '/patients/:id';
 
+  /// The order list.
+  static const String orders = '/orders';
+
+  /// The collaboration hub (shares and referrals).
+  static const String collaboration = '/collaboration';
+
   /// The treatment list.
   static const String treatments = '/treatments';
 
   /// A single treatment's detail page. Append `/<id>`.
   static const String treatmentDetail = '/treatments/:id';
+
+  /// The manufacturing job list.
+  static const String jobs = '/jobs';
+
+  /// The unassigned-files list.
+  static const String files = '/files';
+
+  /// The device and accessory list.
+  static const String equipment = '/equipment';
 
   /// The wait after picking "Status scan" for a device. Pushed on top of the
   /// page the scan was started from, so that "Cancel loading" can return
@@ -108,6 +128,16 @@ final GoRouter appRouter = GoRouter(
       ],
     ),
     GoRoute(
+      path: AppRoutes.orders,
+      name: 'orders',
+      builder: (context, state) => const OrdersPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.collaboration,
+      name: 'collaboration',
+      builder: (context, state) => const CollaborationPage(),
+    ),
+    GoRoute(
       path: AppRoutes.treatments,
       name: 'treatments',
       builder: (context, state) => const TreatmentListPage(),
@@ -119,6 +149,21 @@ final GoRouter appRouter = GoRouter(
               TreatmentDetailPage(treatmentId: state.pathParameters['id']!),
         ),
       ],
+    ),
+    GoRoute(
+      path: AppRoutes.jobs,
+      name: 'jobs',
+      builder: (context, state) => const JobsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.files,
+      name: 'files',
+      builder: (context, state) => const FilesPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.equipment,
+      name: 'equipment',
+      builder: (context, state) => const EquipmentPage(),
     ),
     // Both of these are full-screen: they replace the app chrome rather than
     // render inside it, so neither is nested under a content route.

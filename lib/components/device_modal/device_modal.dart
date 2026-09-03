@@ -20,7 +20,7 @@ const double _detailsImageSize = 240;
 /// Default copy for [DeviceModal.selectDevice]'s selection-validation
 /// notification, shown when Confirm is pressed with no device selected.
 const String _defaultSelectionRequiredMessage =
-    'Please select a device before continue';
+    'Bitte wählen Sie ein Gerät aus, bevor Sie fortfahren';
 
 /// One device rendered as a [DeviceCard] inside a [DeviceModal].
 ///
@@ -314,8 +314,8 @@ class DeviceModal extends StatefulWidget {
     required VoidCallback onClose,
     ValueChanged<int?>? onConfirm,
     int? initiallySelectedIndex,
-    String title = 'Select device',
-    String confirmLabel = 'Confirm',
+    String title = 'Gerät auswählen',
+    String confirmLabel = 'Bestätigen',
     String? secondaryLabel,
     VoidCallback? onSecondaryPressed,
     bool selectable = true,
@@ -364,7 +364,7 @@ class DeviceModal extends StatefulWidget {
     List<DeviceModalDevice> otherDevices = const [],
     ValueChanged<int>? onOtherDeviceSelected,
     VoidCallback? onSwitchDevice,
-    String switchDeviceLabel = 'Switch device',
+    String switchDeviceLabel = 'Gerät wechseln',
     List<String> segments = const [],
     String? selectedSegment,
     ValueChanged<String?>? onSegmentChanged,

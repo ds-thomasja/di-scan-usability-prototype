@@ -43,12 +43,22 @@ final Set<DSTooth> _allPermanentTeeth = {
 /// Cancelling (or closing) either one ends the flow — same as a swallowed tap
 /// elsewhere in this click-through prototype, closing is simpler and no less
 /// correct than pretending to undo a treatment that was never created.
-Future<void> showTreatmentScanFlow(BuildContext context) async {
-  final bool? createPressed = await showDSModalDialog<bool>(
-    context: context,
-    builder: (context, pop) => _NewTreatmentModal(pop: pop),
-  );
-  if (createPressed != true || !context.mounted) return;
+///
+/// [skipNewTreatment] drops the "New treatment" modal: set from
+/// [TreatmentDetailPage]'s "Capture scan", where the treatment already
+/// exists, so the flow starts straight at "Use a previous scan as a
+/// reference" instead of offering to create another one.
+Future<void> showTreatmentScanFlow(
+  BuildContext context, {
+  bool skipNewTreatment = false,
+}) async {
+  if (!skipNewTreatment) {
+    final bool? createPressed = await showDSModalDialog<bool>(
+      context: context,
+      builder: (context, pop) => _NewTreatmentModal(pop: pop),
+    );
+    if (createPressed != true || !context.mounted) return;
+  }
 
   final bool? continuePressed = await showDSModalDialog<bool>(
     context: context,
@@ -117,15 +127,15 @@ class _NewTreatmentModalState extends State<_NewTreatmentModal> {
 
     return DSModalDialog(
       variant: DSModalDialogVariant.large,
-      title: 'New treatment',
+      title: 'Neue Behandlung',
       onClose: () => widget.pop(false),
       buttons: [
         DSButton.secondary(
-          buttonText: 'Cancel',
+          buttonText: 'Abbrechen',
           onPressed: () => widget.pop(false),
         ),
         DSButton.primary(
-          buttonText: 'Create treatment',
+          buttonText: 'Behandlung erstellen',
           icon: DSIcons.add,
           onPressed: () => widget.pop(true),
         ),
@@ -176,7 +186,7 @@ class _NewTreatmentModalState extends State<_NewTreatmentModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Treatment option', style: tokens.text.textBase),
+        Text('Behandlungsoption', style: tokens.text.textBase),
         SizedBox(height: tokens.spacing.component.xs),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -207,7 +217,7 @@ class _NewTreatmentModalState extends State<_NewTreatmentModal> {
           },
         ),
         SizedBox(height: tokens.spacing.layout.m),
-        Text('Tooth position', style: tokens.text.textBase),
+        Text('Zahnposition', style: tokens.text.textBase),
         SizedBox(height: tokens.spacing.component.xs),
         DSNonModalPopupScope(
           key: _popupScopeKey,
@@ -368,23 +378,23 @@ class _ToothOption {
 /// for; Dentures and Splint have no entry, so tapping a tooth under either
 /// just toggles it in or out of the treatment instead of opening a popover.
 const Map<String, List<_ToothOption>> _toothOptionsByLabel = {
-  'Restoration': [
-    _ToothOption('Crown', DSIcons.crown),
+  'Restauration': [
+    _ToothOption('Krone', DSIcons.crown),
     _ToothOption('Inlay', DSIcons.inlay),
     _ToothOption('Onlay', DSIcons.onlay),
     _ToothOption('Veneer', DSIcons.veneer),
-    _ToothOption('Bridge', DSIcons.bridge),
+    _ToothOption('Brücke', DSIcons.bridge),
   ],
   'Aligner': [
-    _ToothOption('Do not move', DSIcons.lock),
-    _ToothOption('Missing', DSIcons.close),
-    _ToothOption('To be extracted', DSIcons.extract),
+    _ToothOption('Nicht bewegen', DSIcons.lock),
+    _ToothOption('Fehlend', DSIcons.close),
+    _ToothOption('Zu extrahieren', DSIcons.extract),
   ],
-  'Implant': [
+  'Implantat': [
     _ToothOption('Abutment', DSIcons.abutment),
-    _ToothOption('Abutment + Crown', DSIcons.abutmentCrown),
+    _ToothOption('Abutment + Krone', DSIcons.abutmentCrown),
     _ToothOption(
-      'Implant Planning / Surgical Guide',
+      'Implantatplanung / Chirurgische Schablone',
       DSIcons.surgicalGuide,
     ),
   ],
@@ -454,7 +464,7 @@ class _TreatmentOverview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Treatment overview', style: tokens.text.headingXl),
+        Text('Behandlungsübersicht', style: tokens.text.headingXl),
         SizedBox(height: tokens.spacing.layout.s),
         if (option != null)
           Container(
@@ -484,7 +494,7 @@ class _TreatmentOverview extends StatelessWidget {
                     Expanded(
                       child: Text(
                         selectedTeeth.isEmpty
-                            ? 'No teeth selected'
+                            ? 'Keine Zähne ausgewählt'
                             : (selectedTeeth.entries.toList()
                                   ..sort(
                                     (a, b) =>
@@ -551,15 +561,15 @@ class _SelectReferenceModalState extends State<_SelectReferenceModal> {
 
     return DSModalDialog(
       variant: DSModalDialogVariant.large,
-      title: 'Use a previous scan as a reference (optional)',
+      title: 'Einen vorherigen Scan als Referenz verwenden (optional)',
       onClose: () => widget.pop(false),
       buttons: [
         DSButton.secondary(
-          buttonText: 'Cancel',
+          buttonText: 'Abbrechen',
           onPressed: () => widget.pop(false),
         ),
         DSButton.primary(
-          buttonText: 'Continue',
+          buttonText: 'Weiter',
           onPressed: () => widget.pop(true),
         ),
       ],
@@ -636,13 +646,13 @@ class _SelectReferenceModalState extends State<_SelectReferenceModal> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'No preview yet',
+            'Noch keine Vorschau',
             style: tokens.text.textLgStrong,
             textAlign: TextAlign.center,
           ),
           SizedBox(height: tokens.spacing.component.xxs),
           Text(
-            'Click on a file to see a preview of it here.',
+            'Klicken Sie auf eine Datei, um hier eine Vorschau anzuzeigen.',
             style: tokens.text.textBase.copyWith(color: tokens.text.subdued),
             textAlign: TextAlign.center,
           ),

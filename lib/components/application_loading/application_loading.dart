@@ -26,7 +26,7 @@ class ApplicationLoading extends StatelessWidget {
   const ApplicationLoading({
     super.key,
     this.appReady = true,
-    this.subline = 'This may take a few seconds',
+    this.subline = 'Dies kann einige Sekunden dauern',
     this.notification = true,
     this.timeline = true,
     this.steps,
@@ -184,7 +184,7 @@ class ApplicationLoading extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Loading scan...',
+                  'Scan wird geladen...',
                   textAlign: TextAlign.center,
                   style: tokens.text.heading3xl
                       .copyWith(color: tokens.text.standard),
@@ -214,9 +214,10 @@ class ApplicationLoading extends StatelessWidget {
                       horizontal: tokens.spacing.component.l),
                   child: DSInlineNotification(
                     notificationType: DSNotificationType.information,
-                    title: 'Taking a little longer than usual',
-                    message: 'This can take several minutes. Please stay on '
-                        'this screen and do not refresh.',
+                    title: 'Dauert etwas länger als gewöhnlich',
+                    message: 'Dies kann einige Minuten dauern. Bleiben Sie '
+                        'bitte auf diesem Bildschirm und aktualisieren Sie '
+                        'die Seite nicht.',
                   ),
                 ),
               ),
@@ -253,15 +254,15 @@ class ApplicationLoading extends StatelessWidget {
                           [
                             loadingStep(
                               DSTimelineStepType.active,
-                              'Preparing workspace…',
+                              'Arbeitsbereich wird vorbereitet…',
                             ),
                             loadingStep(
                               DSTimelineStepType.future,
-                              'Fetch scan data',
+                              'Scandaten abrufen',
                             ),
                             loadingStep(
                               DSTimelineStepType.future,
-                              'Start application',
+                              'Anwendung starten',
                             ),
                           ],
                     ),
@@ -273,7 +274,7 @@ class ApplicationLoading extends StatelessWidget {
         ),
         SizedBox(height: tokens.spacing.layout.m),
         DSButton.tertiary(
-          buttonText: 'Cancel loading',
+          buttonText: 'Laden abbrechen',
           onPressed: () => onCancel?.call(),
         ),
       ],

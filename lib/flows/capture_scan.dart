@@ -38,13 +38,25 @@ import 'create_treatment.dart';
 /// place of "in use"/"warning" — for "Notifikationen". Both scenarios reuse
 /// this exact same modal; see [DeviceScenario].
 ///
+/// [fromTreatmentDetail] marks the call from [TreatmentDetailPage]: picking a
+/// device there skips straight to the treatment-scan flow instead of
+/// stopping at that device's detail view, since a treatment scan is the only
+/// thing "Capture scan" can mean from inside a treatment. See
+/// [_CaptureScanModalState._buildSelectView].
+///
 /// The returned future completes once the modal has closed and any flow it
 /// started has been navigated to.
-Future<void> showCaptureScanModal(BuildContext context) async {
+Future<void> showCaptureScanModal(
+  BuildContext context, {
+  bool fromTreatmentDetail = false,
+}) async {
   final DeviceDetailAction? action =
       await showDSModalDialog<DeviceDetailAction?>(
     context: context,
-    builder: (context, pop) => _CaptureScanModal(pop: pop),
+    builder: (context, pop) => _CaptureScanModal(
+      pop: pop,
+      fromTreatmentDetail: fromTreatmentDetail,
+    ),
   );
 
   // [context] here is the caller's — the page that opened the modal, which is
@@ -60,17 +72,26 @@ Future<void> showCaptureScanModal(BuildContext context) async {
     // a reference" — both entirely independent of the one that just closed;
     // see [showTreatmentScanFlow].
     case DeviceDetailAction.treatmentScan:
-      await showTreatmentScanFlow(context);
+      await showTreatmentScanFlow(
+        context,
+        skipNewTreatment: fromTreatmentDetail,
+      );
   }
 }
 
 /// Holds which of the modal's two views is on screen, for the duration of the
 /// modal.
 class _CaptureScanModal extends StatefulWidget {
-  const _CaptureScanModal({required this.pop});
+  const _CaptureScanModal({
+    required this.pop,
+    required this.fromTreatmentDetail,
+  });
 
   /// Closes the modal, optionally with the flow the tester picked out of it.
   final Pop<DeviceDetailAction?> pop;
+
+  /// See [showCaptureScanModal]'s parameter of the same name.
+  final bool fromTreatmentDetail;
 
   @override
   State<_CaptureScanModal> createState() => _CaptureScanModalState();
@@ -99,15 +120,30 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
   }
 
   /// The device list the modal opens on. Tapping a card shows that device's
-  /// detail view rather than closing the modal.
+  /// detail view rather than closing the modal — unless [_startsTreatmentScan]
+  /// says this pick should skip straight to the treatment-scan flow instead.
   Widget _buildSelectView() => DeviceModal.selectDevice(
         devices: [for (final device in _devices) _toModalDevice(device)],
         // The Figma frame shows no Confirm button: one tap picks the device.
         selectable: false,
         onClose: widget.pop,
-        onConfirm: (index) => setState(() {
-          _openedIndex = index;
-        }),
+        onConfirm: (index) {
+          if (index != null && _startsTreatmentScan(_devices[index])) {
+            widget.pop(DeviceDetailAction.treatmentScan);
+          } else {
+            setState(() => _openedIndex = index);
+          }
+        },
+      );
+
+  /// Whether picking [device] from the list should bypass its detail view and
+  /// go straight to the treatment-scan flow: only from
+  /// [TreatmentDetailPage]'s "Capture scan" (per [widget.fromTreatmentDetail]),
+  /// and only for a device that actually offers a treatment scan.
+  bool _startsTreatmentScan(Device device) =>
+      widget.fromTreatmentDetail &&
+      device.detailItems.any(
+        (item) => item.action == DeviceDetailAction.treatmentScan,
       );
 
   /// The detail view of [index]'s device, per its Figma node.

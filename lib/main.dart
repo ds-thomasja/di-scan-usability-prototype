@@ -29,6 +29,9 @@ class DIScanApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp.router(
         title: 'DI Scan',
         debugShowCheckedModeBanner: false,
+        // Forces German regardless of the browser/OS locale: the whole
+        // prototype's UI is German for this usability-test session.
+        locale: const Locale('de'),
         // Every route in `appRouter` uses a plain `builder:`, which go_router
         // wraps in a `MaterialPage` animated per the ambient
         // `pageTransitionsTheme`. Without this override, clicking a sidebar
@@ -62,7 +65,7 @@ class DIScanApp extends StatelessWidget {
         builder: (context, child) => DSTheme(
           data: const DSThemeDataLight(),
           child: DSRegion(
-            region: DSRegionDataUS.new,
+            region: DSRegionDataDE.new,
             child: DSScaffoldPersistentStateProvider(child: child!),
           ),
         ),

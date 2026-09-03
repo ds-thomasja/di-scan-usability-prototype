@@ -73,7 +73,7 @@ class StartMenuPage extends StatelessWidget {
                           ),
                           actions: [
                             DSAction(
-                              title: 'Open',
+                              title: 'Öffnen',
                               icon: DSIcons.chevronRight,
                               onTrigger: () => _openScenario(
                                 context,
@@ -93,7 +93,7 @@ class StartMenuPage extends StatelessWidget {
                           ),
                           actions: [
                             DSAction(
-                              title: 'Open',
+                              title: 'Öffnen',
                               icon: DSIcons.chevronRight,
                               onTrigger: () => _openScenario(
                                 context,

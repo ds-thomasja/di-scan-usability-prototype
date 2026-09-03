@@ -19,13 +19,13 @@ class MockData {
     'assets/media/di_scan_6.png',
   ];
 
-  static const List<String> _mediaTitles = ['Status scan', 'Treatment scan'];
+  static const List<String> _mediaTitles = ['Status-Scan', 'Behandlungsscan'];
 
   static const List<String> _mediaTimestamps = [
-    'Now',
-    '5 min ago',
-    '7 min ago',
-    '12.08.2025 at 09:39:43',
+    'Jetzt',
+    'Vor 5 Minuten',
+    'Vor 7 Minuten',
+    '12.08.2025 um 09:39:43',
   ];
 
   /// Builds a random 1-5 item Media tab for a patient or treatment: every
@@ -127,7 +127,7 @@ class MockData {
 
   static final List<ActivityEntry> _sampleActivities = [
     const ActivityEntry(
-      title: 'Treatment created: Implant',
+      title: 'Behandlung erstellt: Implantat',
       author: 'Sören Schüller',
       timestamp: '07.03.2025',
     ),
@@ -136,11 +136,11 @@ class MockData {
   static final List<Treatment> treatments = [
     Treatment(
       id: 'AA00LY9',
-      title: 'Implant',
+      title: 'Implantat',
       patientId: 'p1',
       patientName: 'Castaneda, Izzy',
-      service: 'Restoration',
-      teeth: '16 - Crown',
+      service: 'Restauration',
+      teeth: '16 - Krone',
       createdOn: '08/27/2024  9:12',
       createdBy: 'Dr. Ada, Angelina',
       lastActivity: '08/27/2024  9:12',
@@ -153,8 +153,8 @@ class MockData {
       title: 'Endo, Tim',
       patientId: 'p6',
       patientName: 'Briant, Holly',
-      service: 'Root canal treatment',
-      teeth: '14 - Root canal',
+      service: 'Wurzelkanalbehandlung',
+      teeth: '14 - Wurzelkanalbehandlung',
       createdOn: '05/03/2023  10:02',
       createdBy: 'Dr. Ada, Angelina',
       lastActivity: '05/10/2023  10:02',
@@ -164,11 +164,11 @@ class MockData {
     ),
     Treatment(
       id: 'AA0205',
-      title: 'Crown, Holly',
+      title: 'Krone, Holly',
       patientId: 'p7',
       patientName: 'Briant, Holly',
-      service: 'Crown',
-      teeth: '19 - Crown',
+      service: 'Krone',
+      teeth: '19 - Krone',
       createdOn: '05/03/2023  10:02',
       createdBy: 'Dr. Ada, Angelina',
       lastActivity: '05/10/2023  10:02',
@@ -178,11 +178,11 @@ class MockData {
     ),
     Treatment(
       id: 'AA0206',
-      title: 'Bridge, Paula',
+      title: 'Brücke, Paula',
       patientId: 'p8',
       patientName: 'Paula, Theodora',
-      service: 'Temporary Restoration',
-      teeth: '22-24 - Bridge',
+      service: 'Provisorische Restauration',
+      teeth: '22-24 - Brücke',
       createdOn: '05/10/2023  10:02',
       createdBy: 'Dr. Ada, Angelina',
       lastActivity: '05/10/2023  10:02',
@@ -192,11 +192,11 @@ class MockData {
     ),
     Treatment(
       id: 'AA0207',
-      title: 'Nightguard, Angelina',
+      title: 'Aufbissschiene, Angelina',
       patientId: 'p9',
       patientName: 'Briant, Angelina',
-      service: 'Nightguard / Splint',
-      teeth: 'Full arch',
+      service: 'Aufbissschiene / Schiene',
+      teeth: 'Gesamter Bogen',
       createdOn: '05/03/2023  10:02',
       createdBy: 'Dr. Ada, Angelina',
       lastActivity: '05/03/2023  10:02',
@@ -209,15 +209,16 @@ class MockData {
   /// `40184-46885`.
   static const List<DeviceDetailItem> _scanModes = [
     DeviceDetailItem(
-      title: 'Status scan',
-      subline: 'Use for dental check-ups and scanning before surgery.',
+      title: 'Status-Scan',
+      subline: 'Für zahnärztliche Kontrolluntersuchungen und Scans vor '
+          'chirurgischen Eingriffen verwenden.',
       assetPath: 'assets/scan_modes/status_scan.png',
       action: DeviceDetailAction.statusScan,
     ),
     DeviceDetailItem(
-      title: 'Treatment scan',
-      subline: 'Use to create a treatment and scan areas relevant to the '
-          'treatment.',
+      title: 'Behandlungsscan',
+      subline: 'Zum Erstellen einer Behandlung und zum Scannen '
+          'behandlungsrelevanter Bereiche verwenden.',
       assetPath: 'assets/scan_modes/treatment_scan.png',
       action: DeviceDetailAction.treatmentScan,
     ),
@@ -243,11 +244,11 @@ class MockData {
   /// per Figma node `40275-781084`.
   static const List<TreatmentOption> treatmentOptions = [
     TreatmentOption(
-      label: 'Restoration',
+      label: 'Restauration',
       assetPath: 'assets/treatment_options/restoration.png',
     ),
     TreatmentOption(
-      label: 'Dentures',
+      label: 'Prothesen',
       assetPath: 'assets/treatment_options/dentures.png',
     ),
     TreatmentOption(
@@ -255,11 +256,11 @@ class MockData {
       assetPath: 'assets/treatment_options/aligner.png',
     ),
     TreatmentOption(
-      label: 'Implant',
+      label: 'Implantat',
       assetPath: 'assets/treatment_options/implant.png',
     ),
     TreatmentOption(
-      label: 'Splint',
+      label: 'Schiene',
       assetPath: 'assets/treatment_options/splint.png',
     ),
   ];
@@ -283,17 +284,17 @@ class MockData {
   /// grouped the way Figma node `40184-58978` groups them.
   static const List<ReferenceScanGroup> referenceScanGroups = [
     ReferenceScanGroup(
-      title: 'Latest',
+      title: 'Neueste',
       scans: [
         ReferenceScan(
-          title: 'Status scan',
-          timestamp: '09.09.2025 at 14:34:13',
+          title: 'Status-Scan',
+          timestamp: '09.09.2025 um 14:34:13',
           assetPath: 'assets/reference_scans/status_scan_thumbnail.png',
           viewAssetPaths: _referenceScanViewAssetPaths,
         ),
         ReferenceScan(
-          title: 'Status scan',
-          timestamp: '02.05.2025 at 10:56:09',
+          title: 'Status-Scan',
+          timestamp: '02.05.2025 um 10:56:09',
           assetPath: 'assets/reference_scans/status_scan_thumbnail.png',
           viewAssetPaths: _referenceScanViewAssetPaths,
         ),
@@ -325,7 +326,7 @@ class MockData {
       detailItems: _scanModes,
     ),
     Device(
-      name: 'PC/Laptop Room 4',
+      name: 'PC/Laptop Raum 4',
       subline: 'CEREC, Connect',
       assetPath: 'assets/devices/pc_laptop.png',
       detailItems: _pcApplications,
@@ -364,7 +365,7 @@ class MockData {
   /// logic, only a different list.
   static const List<Device> notificationDevices = [
     Device(
-      name: 'PC/Laptop Room 4',
+      name: 'PC/Laptop Raum 4',
       subline: 'CEREC, Connect',
       assetPath: 'assets/devices/pc_laptop.png',
       detailItems: _pcApplications,
@@ -390,9 +391,9 @@ class MockData {
       // explanatory text, so this is written to be plausible for the test
       // session, not signed off.
       statusDescription:
-          "This scanner's calibration is outdated. Recalibrate it before it "
-          'can capture a scan.',
-      statusLinkText: 'Show calibration details',
+          'Um die Qualität Ihrer Scans zu erhalten, ist eine neue '
+          'Kalibrierung erforderlich.',
+      statusLinkText: 'Geräteeinstellungen öffnen',
       thumbnailInset: 26,
     ),
     Device(
@@ -403,9 +404,9 @@ class MockData {
       status: DeviceStatus.firmwareOutdated,
       selectable: false,
       statusDescription:
-          "This scanner's firmware is outdated. Update it before it can "
-          'capture a scan.',
-      statusLinkText: 'Show firmware details',
+          'Ohne weitere Eingaben wird die Primescan-Software nach dieser '
+          'Scan-Sitzung automatisch aktualisiert.',
+      statusLinkText: 'Jetzt aktualisieren',
       thumbnailInset: 26,
     ),
   ];

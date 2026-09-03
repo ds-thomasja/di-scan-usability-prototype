@@ -5,10 +5,6 @@ import 'package:lightning_core_ui/lightning_core_ui.dart';
 import '../app_router.dart';
 
 /// The main-menu entries that a page can mark as selected.
-///
-/// Only the three navigable destinations are listed: `DSMainMenuItem.selected`
-/// only reports `true` for items that also have a non-null `onPressed`, so the
-/// inert entries (Orders, Collaboration, Jobs, ...) can never be selected.
 enum AppShellItem {
   /// The Home destination (`/home`).
   home,
@@ -16,8 +12,23 @@ enum AppShellItem {
   /// The Patients destination (`/patients` and its detail pages).
   patients,
 
+  /// The Orders destination (`/orders`).
+  orders,
+
+  /// The Collaboration destination (`/collaboration`).
+  collaboration,
+
   /// The Treatments destination (`/treatments` and its detail pages).
   treatments,
+
+  /// The Jobs destination (`/jobs`).
+  jobs,
+
+  /// The Files destination (`/files`).
+  files,
+
+  /// The Equipment destination (`/equipment`).
+  equipment,
 }
 
 /// The shared application chrome: DS Core sidebar, top bar and body.
@@ -62,45 +73,52 @@ class AppShell extends StatelessWidget {
         mainMenuContent: DSMainMenuContent(
           items: [
             DSMainMenuItem(
-              label: 'Home',
+              label: 'Start',
               icon: DSIcons.home,
               selected: selectedItem == AppShellItem.home,
               onPressed: () => context.go(AppRoutes.home),
             ),
             DSMainMenuItem(
-              label: 'Patients',
+              label: 'Patienten',
               icon: DSIcons.users,
               selected: selectedItem == AppShellItem.patients,
               onPressed: () => context.go(AppRoutes.patients),
             ),
-            // Inert entries: no `onPressed`, so DSMainMenuItem renders them
-            // disabled. These screens are out of scope for the prototype but
-            // are shown so the sidebar matches the Figma design.
-            const DSMainMenuItem(
-              label: 'Orders',
+            DSMainMenuItem(
+              label: 'Bestellungen',
               icon: DSIcons.shoppingCart,
-            ),
-            const DSMainMenuItem(
-              label: 'Collaboration',
-              icon: DSIcons.collaboration,
+              selected: selectedItem == AppShellItem.orders,
+              onPressed: () => context.go(AppRoutes.orders),
             ),
             DSMainMenuItem(
-              label: 'Treatments',
+              label: 'Zusammenarbeit',
+              icon: DSIcons.collaboration,
+              selected: selectedItem == AppShellItem.collaboration,
+              onPressed: () => context.go(AppRoutes.collaboration),
+            ),
+            DSMainMenuItem(
+              label: 'Behandlungen',
               icon: DSIcons.treatment,
               selected: selectedItem == AppShellItem.treatments,
               onPressed: () => context.go(AppRoutes.treatments),
             ),
-            const DSMainMenuItem(
-              label: 'Jobs',
+            DSMainMenuItem(
+              label: 'Aufträge',
               icon: DSIcons.tasks,
+              selected: selectedItem == AppShellItem.jobs,
+              onPressed: () => context.go(AppRoutes.jobs),
             ),
-            const DSMainMenuItem(
-              label: 'Uncategorised files',
+            DSMainMenuItem(
+              label: 'Nicht zugeordnete Dateien',
               icon: DSIcons.imageSeries,
+              selected: selectedItem == AppShellItem.files,
+              onPressed: () => context.go(AppRoutes.files),
             ),
-            const DSMainMenuItem(
-              label: 'Equipment',
+            DSMainMenuItem(
+              label: 'Geräte',
               icon: DSIcons.connectivity,
+              selected: selectedItem == AppShellItem.equipment,
+              onPressed: () => context.go(AppRoutes.equipment),
             ),
           ],
         ),
@@ -109,12 +127,12 @@ class AppShell extends StatelessWidget {
           // them greyed out, which is not what the design shows.
           DSButton.tertiary(
             icon: DSIcons.notification,
-            tooltip: 'Notifications',
+            tooltip: 'Benachrichtigungen',
             onPressed: () {},
           ),
           DSButton.tertiary(
             icon: DSIcons.helpCircle,
-            tooltip: 'Help',
+            tooltip: 'Hilfe',
             onPressed: () {},
           ),
           // Per DSScaffold's docs, a DSUserMenuButton must be the last action.
@@ -125,13 +143,13 @@ class AppShell extends StatelessWidget {
               userAdditionalInfo: 'Dentsply Sirona',
               userInitials: 'UN',
               items: [
-                const DSUserMenuItem(label: 'Profile', icon: DSIcons.user),
+                const DSUserMenuItem(label: 'Profil', icon: DSIcons.user),
                 const DSUserMenuItem(
-                  label: 'Settings',
+                  label: 'Einstellungen',
                   icon: DSIcons.settingsCog,
                 ),
                 DSUserMenuItem(
-                  label: 'Log out',
+                  label: 'Abmelden',
                   icon: DSIcons.logout,
                   onPressed: () => context.go(AppRoutes.start),
                 ),

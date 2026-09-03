@@ -99,13 +99,13 @@ class _AuthGateState extends State<AuthGate> {
                       ),
                       SizedBox(height: tokens.spacing.component.xxs),
                       DSText(
-                        'Usability test prototype',
+                        'Usability-Test-Prototyp',
                         style: tokens.text.textSm
                             .copyWith(color: tokens.text.subdued),
                       ),
                       SizedBox(height: tokens.spacing.layout.s),
                       DSText(
-                        'Password',
+                        'Passwort',
                         style: tokens.text.textSmStrong,
                       ),
                       SizedBox(height: tokens.spacing.component.xxs),
@@ -115,12 +115,12 @@ class _AuthGateState extends State<AuthGate> {
                       // are prerequisites for password-manager autofill.
                       AutofillGroup(
                         child: Semantics(
-                          label: 'Prototype password',
+                          label: 'Prototyp-Passwort',
                           textField: true,
                           child: DSPasswordField(
                             controller: _controller,
                             focusNode: _fieldFocusNode,
-                            hintText: 'Enter password',
+                            hintText: 'Passwort eingeben',
                             hasError: _hasError,
                             autofocus: true,
                             autofillHints: const [AutofillHints.password],
@@ -134,7 +134,8 @@ class _AuthGateState extends State<AuthGate> {
                         Semantics(
                           liveRegion: true,
                           child: DSText(
-                            'Incorrect password. Please try again.',
+                            'Falsches Passwort. Bitte versuchen Sie es '
+                            'erneut.',
                             maxLines: 2,
                             style: tokens.text.textSm
                                 .copyWith(color: tokens.text.critical),
@@ -143,14 +144,14 @@ class _AuthGateState extends State<AuthGate> {
                       ],
                       SizedBox(height: tokens.spacing.component.s),
                       DSCheckbox(
-                        label: 'Stay unlocked on this browser',
+                        label: 'Auf diesem Browser entsperrt bleiben',
                         value: _remember,
                         onChanged: (bool value) =>
                             setState(() => _remember = value),
                       ),
                       SizedBox(height: tokens.spacing.layout.s),
                       DSButton.primary(
-                        buttonText: 'Unlock',
+                        buttonText: 'Entsperren',
                         stretch: true,
                         onPressed: _submit,
                       ),

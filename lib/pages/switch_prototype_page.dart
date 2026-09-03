@@ -57,7 +57,7 @@ class SwitchPrototypePage extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DSText(
-                      'Switch prototype',
+                      'Prototyp wechseln',
                       style: tokens.text.heading5xl,
                       textAlign: TextAlign.center,
                       // Both lines wrap rather than truncate: the frame fits
@@ -67,8 +67,8 @@ class SwitchPrototypePage extends StatelessWidget {
                     ),
                     SizedBox(height: tokens.spacing.component.l),
                     DSText(
-                      'Continue the scanning workflow in the other browser '
-                      'window',
+                      'Setzen Sie den Scan-Workflow im anderen '
+                      'Browserfenster fort',
                       style: tokens.text.heading3xl,
                       textAlign: TextAlign.center,
                       maxLines: null,

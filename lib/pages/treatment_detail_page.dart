@@ -47,7 +47,9 @@ class TreatmentDetailPage extends StatelessWidget {
       return const AppShell(
         selectedItem: AppShellItem.treatments,
         bodySlivers: [
-          SliverToBoxAdapter(child: Center(child: Text('Treatment not found'))),
+          SliverToBoxAdapter(
+            child: Center(child: Text('Behandlung nicht gefunden')),
+          ),
         ],
       );
     }
@@ -60,7 +62,7 @@ class TreatmentDetailPage extends StatelessWidget {
         DSSliverScrollablePage.withTabs(
           title: treatment.title,
           subtitle:
-              'Created on ${treatment.createdOn} by ${treatment.createdBy}',
+              'Erstellt am ${treatment.createdOn} von ${treatment.createdBy}',
           // The Figma frame labels the back button with the patient's name.
           backButtonText: treatment.patientName,
           onBackPressed: goToPatient,
@@ -68,12 +70,13 @@ class TreatmentDetailPage extends StatelessWidget {
             // "Capture scan" opens the device-selection modal; every other
             // header action is inert in this click-through prototype.
             DSButton.secondary(
-              buttonText: 'Capture scan',
-              icon: DSIcons.scanUpperJaw,
-              onPressed: () => showCaptureScanModal(context),
+              buttonText: 'Scan aufnehmen',
+              icon: DSIcons.deviceDSPrimescan,
+              onPressed: () =>
+                  showCaptureScanModal(context, fromTreatmentDetail: true),
             ),
             DSButton.secondary(
-              buttonText: 'Create',
+              buttonText: 'Erstellen',
               icon: DSIcons.chevronDown,
               iconLeft: false,
               onPressed: () {},
@@ -85,7 +88,7 @@ class TreatmentDetailPage extends StatelessWidget {
             ),
             DSButton.tertiary(
               icon: DSIcons.dotsHorizontal,
-              tooltip: 'More actions',
+              tooltip: 'Weitere Aktionen',
               onPressed: () {},
             ),
           ],
@@ -106,7 +109,7 @@ class TreatmentDetailPage extends StatelessWidget {
               ],
             ),
             DSScrollableTabbedView(
-              title: 'Medias',
+              title: 'Medien',
               slivers: [
                 SliverToBoxAdapter(
                   child: _TabBodyWithQuickView(
@@ -117,7 +120,7 @@ class TreatmentDetailPage extends StatelessWidget {
               ],
             ),
             DSScrollableTabbedView(
-              title: 'Orders',
+              title: 'Bestellungen',
               slivers: [
                 SliverToBoxAdapter(
                   child: _TabBodyWithQuickView(
@@ -125,9 +128,9 @@ class TreatmentDetailPage extends StatelessWidget {
                     content: const DSContainer(
                       child: DSEmptyState(
                         size: DSEmptyStateSize.large,
-                        headline: 'No orders yet',
-                        body: 'Orders placed for this treatment will show '
-                            'here.',
+                        headline: 'Noch keine Bestellungen',
+                        body: 'Für diese Behandlung aufgegebene Bestellungen '
+                            'werden hier angezeigt.',
                       ),
                     ),
                   ),
@@ -135,7 +138,7 @@ class TreatmentDetailPage extends StatelessWidget {
               ],
             ),
             DSScrollableTabbedView(
-              title: 'Manufacturing',
+              title: 'Fertigung',
               slivers: [
                 SliverToBoxAdapter(
                   child: _TabBodyWithQuickView(
@@ -143,9 +146,9 @@ class TreatmentDetailPage extends StatelessWidget {
                     content: const DSContainer(
                       child: DSEmptyState(
                         size: DSEmptyStateSize.large,
-                        headline: 'No manufacturing data yet',
-                        body: 'Manufacturing jobs for this treatment will '
-                            'show here.',
+                        headline: 'Noch keine Fertigungsdaten',
+                        body: 'Fertigungsaufträge für diese Behandlung '
+                            'werden hier angezeigt.',
                       ),
                     ),
                   ),
@@ -221,7 +224,7 @@ class _SummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Treatment', style: tokens.text.textBaseStrong),
+                Text('Behandlung', style: tokens.text.textBaseStrong),
                 SizedBox(height: tokens.spacing.component.xxs),
                 Text(treatment.title, style: tokens.text.textBase),
               ],
@@ -251,9 +254,9 @@ class _MediaTabContent extends StatelessWidget {
       return const DSContainer(
         child: DSEmptyState(
           size: DSEmptyStateSize.large,
-          headline: 'No media yet',
-          body: 'Scans and images captured for this treatment will show '
-              'here.',
+          headline: 'Noch keine Medien',
+          body: 'Für diese Behandlung erfasste Scans und Bilder werden '
+              'hier angezeigt.',
         ),
       );
     }
@@ -266,7 +269,7 @@ class _MediaTabContent extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
-            child: MediaSectionHeading(label: 'Media', count: media.length),
+            child: MediaSectionHeading(label: 'Medien', count: media.length),
           ),
           SliverToBoxAdapter(
             child: SizedBox(height: tokens.spacing.layout.s),
@@ -316,16 +319,17 @@ class _QuickViewPanel extends StatelessWidget {
           child: DSTabbedViews(
             tabbedViews: [
               DSTabbedView(
-                title: 'Activities',
+                title: 'Aktivitäten',
                 child: _ActivitiesTimeline(activities: treatment.activities),
               ),
               DSTabbedView(
-                title: 'Notes',
+                title: 'Notizen',
                 child: const SingleChildScrollView(
                   child: DSEmptyState(
                     size: DSEmptyStateSize.small,
-                    headline: 'No notes yet',
-                    body: 'Notes added to this treatment will show here.',
+                    headline: 'Noch keine Notizen',
+                    body: 'Zu dieser Behandlung hinzugefügte Notizen werden '
+                        'hier angezeigt.',
                   ),
                 ),
               ),
@@ -349,8 +353,8 @@ class _ActivitiesTimeline extends StatelessWidget {
       return const SingleChildScrollView(
         child: DSEmptyState(
           size: DSEmptyStateSize.small,
-          headline: 'No activities yet',
-          body: 'Changes to this treatment will show here.',
+          headline: 'Noch keine Aktivitäten',
+          body: 'Änderungen an dieser Behandlung werden hier angezeigt.',
         ),
       );
     }
@@ -447,12 +451,12 @@ class _TreatmentDefinition extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Treatment definition',
+                  'Behandlungsdefinition',
                   style: tokens.text.headingBase,
                 ),
               ),
               // Inert in this prototype.
-              DSButton.secondary(buttonText: 'Edit', onPressed: () {}),
+              DSButton.secondary(buttonText: 'Bearbeiten', onPressed: () {}),
             ],
           ),
           SizedBox(height: tokens.spacing.layout.s),
@@ -472,7 +476,7 @@ class _TreatmentDefinition extends StatelessWidget {
           DSAccordion(
             items: [
               DSAccordionItem(
-                title: 'Implantology',
+                title: 'Implantologie',
                 expandableContent: _ImplantologySection(treatment: treatment),
               ),
             ],
@@ -497,8 +501,8 @@ class _ImplantologySection extends StatelessWidget {
     final tokens = DSTokens.of(context);
 
     final teethLabel = treatment.selectedTeeth.isEmpty
-        ? 'Implant'
-        : 'Implant · ${treatment.selectedTeeth.join(', ')}';
+        ? 'Implantat'
+        : 'Implantat · ${treatment.selectedTeeth.join(', ')}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,7 +515,7 @@ class _ImplantologySection extends StatelessWidget {
             ),
             DSButton.tertiary(
               icon: DSIcons.trash,
-              tooltip: 'Remove',
+              tooltip: 'Entfernen',
               onPressed: () {},
             ),
           ],
@@ -520,9 +524,9 @@ class _ImplantologySection extends StatelessWidget {
         DSRadio<int>(
           value: 0,
           groupValue: 0,
-          label: 'Add CBCT and DI scan',
-          info: 'By adding DI scan you will be able to generate surgical '
-              'guide.',
+          label: 'CBCT- und DI-Scan hinzufügen',
+          info: 'Durch Hinzufügen eines DI-Scans können Sie eine '
+              'chirurgische Schablone erstellen.',
           maxLines: 2,
           // Inert: the single option is always selected.
           onChanged: (_) {},
@@ -532,11 +536,11 @@ class _ImplantologySection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
             Expanded(
-              child: _ScanDropSlot(title: 'CBCT Scan', formats: 'Format: DCM'),
+              child: _ScanDropSlot(title: 'CBCT-Scan', formats: 'Format: DCM'),
             ),
             _ScanDropSlotGap(),
             Expanded(
-              child: _ScanDropSlot(title: 'DI Scan', formats: 'Formats: DXD'),
+              child: _ScanDropSlot(title: 'DI-Scan', formats: 'Formate: DXD'),
             ),
           ],
         ),

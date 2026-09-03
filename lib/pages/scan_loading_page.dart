@@ -146,10 +146,13 @@ class _ScanLoadingPageState extends State<ScanLoadingPage> {
     }
 
     return [
-      loadingStep(typeFor(_Phase.preparingWorkspace), 'Preparing workspace…'),
+      loadingStep(
+        typeFor(_Phase.preparingWorkspace),
+        'Arbeitsbereich wird vorbereitet…',
+      ),
       if (widget.includeFetchScanData)
-        loadingStep(typeFor(_Phase.fetchingScanData), 'Fetch scan data'),
-      loadingStep(typeFor(_Phase.startingApplication), 'Start application'),
+        loadingStep(typeFor(_Phase.fetchingScanData), 'Scandaten abrufen'),
+      loadingStep(typeFor(_Phase.startingApplication), 'Anwendung starten'),
     ];
   }
 

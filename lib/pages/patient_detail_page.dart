@@ -37,12 +37,12 @@ class PatientDetailPage extends StatelessWidget {
           SliverToBoxAdapter(
             child: DSEmptyState(
               size: DSEmptyStateSize.large,
-              headline: 'Patient not found',
-              body: 'There is no patient with the id "$patientId".',
+              headline: 'Patient nicht gefunden',
+              body: 'Es gibt keinen Patienten mit der ID "$patientId".',
               illustration: DSSpotIllustrations.patients,
               actions: [
                 DSButton.primary(
-                  buttonText: 'Back to patients',
+                  buttonText: 'Zurück zu Patienten',
                   onPressed: () => context.go(AppRoutes.patients),
                 ),
               ],
@@ -59,11 +59,11 @@ class PatientDetailPage extends StatelessWidget {
           title: patient.name,
           subtitle: patient.dateOfBirth,
           onBackPressed: () => context.go(AppRoutes.patients),
-          backButtonText: 'Patients',
+          backButtonText: 'Patienten',
           actions: _headerActions(context),
           tabbedScrollableViews: [
             DSScrollableTabbedView(
-              title: 'Media',
+              title: 'Medien',
               slivers: [
                 SliverToBoxAdapter(child: _MediaToolbar()),
                 SliverToBoxAdapter(child: _LayoutSGap()),
@@ -71,7 +71,7 @@ class PatientDetailPage extends StatelessWidget {
                   slivers: [
                     SliverToBoxAdapter(
                       child: MediaSectionHeading(
-                        label: 'Last 3 months',
+                        label: 'Letzte 3 Monate',
                         count: patient.media.length,
                       ),
                     ),
@@ -82,43 +82,44 @@ class PatientDetailPage extends StatelessWidget {
               ],
             ),
             DSScrollableTabbedView(
-              title: 'Orders',
+              title: 'Bestellungen',
               slivers: [
                 SliverToBoxAdapter(
                   child: DSEmptyState(
                     size: DSEmptyStateSize.large,
-                    headline: 'No orders yet',
-                    body: 'Orders created for this patient will show up here.',
+                    headline: 'Noch keine Bestellungen',
+                    body: 'Für diesen Patienten erstellte Bestellungen '
+                        'werden hier angezeigt.',
                     illustration: DSSpotIllustrations.orders,
                   ),
                 ),
               ],
             ),
             DSScrollableTabbedView(
-              title: 'Collaboration',
+              title: 'Zusammenarbeit',
               slivers: [
                 SliverToBoxAdapter(
                   child: DSEmptyState(
                     size: DSEmptyStateSize.large,
-                    headline: 'No collaboration yet',
+                    headline: 'Noch keine Zusammenarbeit',
                     body:
-                        'Cases shared with colleagues or labs will show up '
-                        'here.',
+                        'Mit Kollegen oder Laboren geteilte Fälle werden '
+                        'hier angezeigt.',
                     illustration: DSSpotIllustrations.collaboration,
                   ),
                 ),
               ],
             ),
             DSScrollableTabbedView(
-              title: 'Treatments',
+              title: 'Behandlungen',
               slivers: [
                 SliverToBoxAdapter(
                   child: DSEmptyState(
                     size: DSEmptyStateSize.large,
-                    headline: 'No treatments yet',
+                    headline: 'Noch keine Behandlungen',
                     body:
-                        'Treatments planned for this patient will show up '
-                        'here.',
+                        'Für diesen Patienten geplante Behandlungen werden '
+                        'hier angezeigt.',
                     illustration: DSSpotIllustrations.treatments,
                   ),
                 ),
@@ -134,21 +135,21 @@ class PatientDetailPage extends StatelessWidget {
   /// enabled but inert.
   List<Widget> _headerActions(BuildContext context) => [
     DSButton.secondary(
-      buttonText: 'Capture scan',
-      icon: DSIcons.scanUpperJaw,
+      buttonText: 'Scan aufnehmen',
+      icon: DSIcons.deviceDSPrimescan,
       onPressed: () => showCaptureScanModal(context),
     ),
     DSActionsButton.secondary(
-      buttonText: 'Create',
+      buttonText: 'Erstellen',
       actions: [
         [
           DSAction(
-            title: 'Treatment',
+            title: 'Behandlung',
             icon: DSIcons.treatment,
             onTrigger: () {},
           ),
           DSAction(
-            title: 'Order',
+            title: 'Bestellung',
             icon: DSIcons.shoppingCart,
             onTrigger: () {},
           ),
@@ -162,15 +163,19 @@ class PatientDetailPage extends StatelessWidget {
     ),
     DSActionsButton.iconTertiary(
       icon: DSIcons.dotsHorizontal,
-      tooltip: 'More actions',
+      tooltip: 'Weitere Aktionen',
       actions: [
         [
-          DSAction(title: 'Edit patient', icon: DSIcons.edit, onTrigger: () {}),
-          DSAction(title: 'Share', icon: DSIcons.share, onTrigger: () {}),
+          DSAction(
+            title: 'Patient bearbeiten',
+            icon: DSIcons.edit,
+            onTrigger: () {},
+          ),
+          DSAction(title: 'Freigeben', icon: DSIcons.share, onTrigger: () {}),
         ],
         [
           DSAction(
-            title: 'Archive patient',
+            title: 'Patient archivieren',
             icon: DSIcons.archive,
             onTrigger: () {},
           ),
@@ -197,7 +202,7 @@ class _MediaToolbar extends StatelessWidget {
       children: [
         SizedBox(
           width: 320,
-          child: DSSearchField<void>(hintText: 'Search', onSearch: (_) {}),
+          child: DSSearchField<void>(hintText: 'Suchen', onSearch: (_) {}),
         ),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
@@ -205,19 +210,19 @@ class _MediaToolbar extends StatelessWidget {
           runSpacing: tokens.spacing.component.xs,
           children: [
             DSButton.tertiary(
-              buttonText: 'Show everything',
+              buttonText: 'Alles anzeigen',
               icon: DSIcons.chevronDown,
               iconLeft: false,
               onPressed: () {},
             ),
             DSButton.tertiary(
-              buttonText: 'New to old',
+              buttonText: 'Neu nach alt',
               icon: DSIcons.chevronDown,
               iconLeft: false,
               onPressed: () {},
             ),
             DSButton.secondary(
-              buttonText: 'Upload media',
+              buttonText: 'Medien hochladen',
               icon: DSIcons.upload,
               onPressed: () {},
             ),

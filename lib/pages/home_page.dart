@@ -40,12 +40,12 @@ class HomePage extends StatelessWidget {
         // DSSliverScrollablePage; the latter already wraps its header and body
         // in DSSliverResponsiveBody, so no extra margin handling is needed.
         DSSliverScrollablePage.withExpandingBody(
-          title: 'Welcome, Dr. Ada',
-          subtitle: 'Welcome to the dashboard of your DS CORE account.',
+          title: 'Willkommen, Dr. Ada',
+          subtitle: 'Willkommen im Dashboard Ihres DS CORE-Kontos.',
           actions: [
             // Inert: the prototype has no create flow behind this button.
             DSButton.primary(
-              buttonText: 'New',
+              buttonText: 'Neu',
               icon: DSIcons.chevronDown,
               iconLeft: false,
               onPressed: () {},
@@ -114,7 +114,7 @@ class _DashboardCard extends StatelessWidget {
               // prototype, but the affordance is part of the design.
               DSButton.tertiary(
                 icon: DSIcons.chevronDown,
-                tooltip: 'Collapse $title',
+                tooltip: '$title einklappen',
                 onPressed: () {},
               ),
             ],
@@ -143,10 +143,10 @@ class _PatientsCard extends StatelessWidget {
     final patients = MockData.patients;
 
     return _DashboardCard(
-      title: 'Patients (${patients.length})',
+      title: 'Patienten (${patients.length})',
       // Cosmetic: filtering is the dedicated Patients page's job.
       aboveList: DSSearchField<String>(
-        hintText: 'Search',
+        hintText: 'Suchen',
         onSearch: (_) {},
       ),
       list: DSList<DSListTextItem>(
@@ -195,55 +195,55 @@ class _OrderRow {
 const List<_OrderRow> _orders = [
   _OrderRow(
     code: '2AA009KP',
-    status: 'Declined',
+    status: 'Abgelehnt',
     statusType: DSStatusTagType.critical,
-    description: 'Nightguard / Splint',
-    orderedOn: 'May 3, 2023',
+    description: 'Aufbissschiene / Schiene',
+    orderedOn: '3. Mai 2023',
     patient: 'Briant, Holly',
     owner: 'Dr. Ada, Angelina',
   ),
   _OrderRow(
     code: '2AA00AC3',
-    status: 'Canceled',
+    status: 'Storniert',
     statusType: DSStatusTagType.neutral,
-    description: 'CEREC Guide',
-    orderedOn: 'May 3, 2023',
+    description: 'CEREC-Guide',
+    orderedOn: '3. Mai 2023',
     patient: 'Briant, Holly',
     owner: 'Dr. Ada, Angelina',
   ),
   _OrderRow(
     code: '2AA00AC2',
-    status: 'Requested',
+    status: 'Angefordert',
     statusType: DSStatusTagType.neutral,
-    description: 'CEREC Guide',
-    orderedOn: 'May 3, 2023',
+    description: 'CEREC-Guide',
+    orderedOn: '3. Mai 2023',
     patient: 'Briant, Holly',
     owner: 'Dr. Ada, Angelina',
   ),
   _OrderRow(
     code: '2AA009XU',
-    status: 'Completed',
+    status: 'Abgeschlossen',
     statusType: DSStatusTagType.success,
-    description: 'Temporary Restoration',
-    orderedOn: 'May 10, 2023',
+    description: 'Provisorische Restauration',
+    orderedOn: '10. Mai 2023',
     patient: 'Paula, Theodora',
     owner: 'Dr. Ada, Angelina',
   ),
   _OrderRow(
     code: '2AA009KG',
-    status: 'Completed',
+    status: 'Abgeschlossen',
     statusType: DSStatusTagType.success,
-    description: 'Custom Impression Tray',
-    orderedOn: 'May 10, 2023',
+    description: 'Individueller Abformlöffel',
+    orderedOn: '10. Mai 2023',
     patient: 'Briant, Holly',
     owner: 'Dr. Ada, Angelina',
   ),
   _OrderRow(
     code: '2AA008LJ',
-    status: 'Requested',
+    status: 'Angefordert',
     statusType: DSStatusTagType.neutral,
-    description: 'Custom Abutment',
-    orderedOn: 'Apr 4, 2023',
+    description: 'Individuelles Abutment',
+    orderedOn: '4. Apr. 2023',
     patient: 'Briant, Holly',
     owner: 'Dr. Ada, Angelina',
   ),
@@ -261,7 +261,7 @@ class _OrdersCard extends StatelessWidget {
     final bodyStyle = tokens.text.textSm.copyWith(color: tokens.text.subdued);
 
     return _DashboardCard(
-      title: 'All orders (${_orders.length})',
+      title: 'Alle Bestellungen (${_orders.length})',
       list: DSList<DSListCustomItem>(
         items: [
           for (final order in _orders)
@@ -284,9 +284,9 @@ class _OrdersCard extends StatelessWidget {
                   ),
                   DSText(
                     '${order.description}\n'
-                    'Ordered on: ${order.orderedOn}\n'
+                    'Bestellt am: ${order.orderedOn}\n'
                     'Patient: ${order.patient}\n'
-                    'Owner: ${order.owner}',
+                    'Verantwortlich: ${order.owner}',
                     style: bodyStyle,
                     maxLines: null,
                     overflow: null,
@@ -321,28 +321,28 @@ class _ShareRow {
 
 const List<_ShareRow> _shares = [
   _ShareRow(
-    title: 'Share of Endo, Tim',
-    party: 'From with Dr. Ada, Angelina',
-    daysLeft: '19 days left',
-    direction: 'Received',
+    title: 'Freigabe von Endo, Tim',
+    party: 'Von Dr. Ada, Angelina',
+    daysLeft: 'Noch 19 Tage',
+    direction: 'Empfangen',
   ),
   _ShareRow(
-    title: 'Share of Holly, Briant',
-    party: 'Shared with Dr. Ada, Angelina',
-    daysLeft: '21 days left',
-    direction: 'Sent',
+    title: 'Freigabe von Holly, Briant',
+    party: 'Freigegeben für Dr. Ada, Angelina',
+    daysLeft: 'Noch 21 Tage',
+    direction: 'Gesendet',
   ),
   _ShareRow(
-    title: 'Share of Endo, Tim',
-    party: 'Shared with Dr. Ada, Angelina',
-    daysLeft: '19 days left',
-    direction: 'Received',
+    title: 'Freigabe von Endo, Tim',
+    party: 'Freigegeben für Dr. Ada, Angelina',
+    daysLeft: 'Noch 19 Tage',
+    direction: 'Empfangen',
   ),
   _ShareRow(
-    title: 'Share of Holly, Briant',
-    party: 'Shared with Dr. Ada, Angelina',
-    daysLeft: '21 days left',
-    direction: 'Sent',
+    title: 'Freigabe von Holly, Briant',
+    party: 'Freigegeben für Dr. Ada, Angelina',
+    daysLeft: 'Noch 21 Tage',
+    direction: 'Gesendet',
   ),
 ];
 
@@ -352,7 +352,7 @@ class _CollaborationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _DashboardCard(
         // No count in the design for this card.
-        title: 'Collaboration',
+        title: 'Zusammenarbeit',
         list: DSList<DSListTextItem>(
           items: [
             for (final share in _shares)
@@ -380,16 +380,16 @@ class _TreatmentsCard extends StatelessWidget {
     final treatments = MockData.treatments;
 
     return _DashboardCard(
-      title: 'Treatments (${treatments.length})',
+      title: 'Behandlungen (${treatments.length})',
       list: DSList<DSListTextItem>(
         items: [
           for (final treatment in treatments)
             DSListTextItem(
               header: treatment.id,
               body: '${treatment.title}\n'
-                  'Created on: ${treatment.createdOn}\n'
+                  'Erstellt am: ${treatment.createdOn}\n'
                   'Patient: ${treatment.patientName}\n'
-                  'Owner: ${treatment.createdBy}',
+                  'Verantwortlich: ${treatment.createdBy}',
               onPressed: () => context.go(AppRoutes.treatment(treatment.id)),
             ),
         ],

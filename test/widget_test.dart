@@ -7,6 +7,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('DI Scan'), findsOneWidget);
-    expect(find.text('Unlock'), findsOneWidget);
+    expect(find.text('Entsperren'), findsOneWidget);
   });
 }

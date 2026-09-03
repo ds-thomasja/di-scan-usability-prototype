@@ -82,20 +82,24 @@ class _MediaGridSliverState extends State<MediaGridSliver> {
         actions: [
           [
             DSAction(
-              title: 'Open in Canvas',
+              title: 'In Canvas öffnen',
               icon: DSIcons.canvas,
               onTrigger: () {},
             ),
             DSAction(
-              title: 'Download',
+              title: 'Herunterladen',
               icon: DSIcons.download,
               onTrigger: () {},
             ),
-            DSAction(title: 'Share', icon: DSIcons.share, onTrigger: () {}),
+            DSAction(
+              title: 'Freigeben',
+              icon: DSIcons.share,
+              onTrigger: () {},
+            ),
           ],
           [
             DSAction(
-              title: 'Delete',
+              title: 'Löschen',
               icon: DSIcons.trash,
               destructive: true,
               onTrigger: () {},

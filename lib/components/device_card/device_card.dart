@@ -62,10 +62,10 @@ extension DeviceCardStatusPresentation on DeviceCardStatus {
   String get label => switch (this) {
         DeviceCardStatus.online => 'Online',
         DeviceCardStatus.offline => 'Offline',
-        DeviceCardStatus.inUse => 'In use',
-        DeviceCardStatus.warning => 'Warning',
-        DeviceCardStatus.calibrationOutdated => 'Calibration outdated',
-        DeviceCardStatus.firmwareOutdated => 'Firmware outdated',
+        DeviceCardStatus.inUse => 'In Benutzung',
+        DeviceCardStatus.warning => 'Warnung',
+        DeviceCardStatus.calibrationOutdated => 'Kalibrierung veraltet',
+        DeviceCardStatus.firmwareOutdated => 'Firmware veraltet',
       };
 
   /// The DS status tag styling.
