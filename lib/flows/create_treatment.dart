@@ -48,8 +48,15 @@ final Set<DSTooth> _allPermanentTeeth = {
 /// [TreatmentDetailPage]'s "Capture scan", where the treatment already
 /// exists, so the flow starts straight at "Use a previous scan as a
 /// reference" instead of offering to create another one.
+///
+/// [patient] backs "Use a previous scan as a reference": that modal is
+/// skipped entirely when [patient] has no media in their Media tab
+/// ([Patient.media]) — there is nothing it could offer as a reference — and
+/// otherwise its gallery shows exactly as many scans as that Media tab does,
+/// via [MockData.referenceScanGroupsForPatient].
 Future<void> showTreatmentScanFlow(
   BuildContext context, {
+  required Patient? patient,
   bool skipNewTreatment = false,
 }) async {
   if (!skipNewTreatment) {
@@ -60,11 +67,14 @@ Future<void> showTreatmentScanFlow(
     if (createPressed != true || !context.mounted) return;
   }
 
-  final bool? continuePressed = await showDSModalDialog<bool>(
-    context: context,
-    builder: (context, pop) => _SelectReferenceModal(pop: pop),
-  );
-  if (continuePressed != true || !context.mounted) return;
+  if (patient != null && patient.media.isNotEmpty) {
+    final bool? continuePressed = await showDSModalDialog<bool>(
+      context: context,
+      builder: (context, pop) =>
+          _SelectReferenceModal(pop: pop, patient: patient),
+    );
+    if (continuePressed != true || !context.mounted) return;
+  }
 
   // Pushed rather than gone to, for the same reason [DeviceDetailAction.
   // statusScan] pushes it: so "Cancel loading" has this page to return to.
@@ -199,8 +209,7 @@ class _NewTreatmentModalState extends State<_NewTreatmentModal> {
               spacing: spacing,
               runSpacing: spacing,
               children: [
-                for (final (index, option)
-                    in MockData.treatmentOptions.indexed)
+                for (final (index, option) in MockData.treatmentOptions.indexed)
                   SizedBox(
                     width: tileWidth,
                     child: _TreatmentOptionTile(
@@ -234,56 +243,59 @@ class _NewTreatmentModalState extends State<_NewTreatmentModal> {
             disabledTeeth: _selectedOption == null
                 ? _allPermanentTeeth
                 : const {},
-            onToothPressed: ({
-              required tooth,
-              required anchorKey,
-              required preferredPosition,
-            }) {
-              // Tapping any tooth closes whichever popover is currently
-              // open — Figma shows only ever one at a time.
-              _closePopoverIfOpen();
+            onToothPressed:
+                ({
+                  required tooth,
+                  required anchorKey,
+                  required preferredPosition,
+                }) {
+                  // Tapping any tooth closes whichever popover is currently
+                  // open — Figma shows only ever one at a time.
+                  _closePopoverIfOpen();
 
-              final List<_ToothOption>? options = switch (_selectedOption) {
-                final int i =>
-                  _toothOptionsByLabel[MockData.treatmentOptions[i].label],
-                null => null,
-              };
-              // Dentures and Splint (and no option picked yet) have no
-              // per-tooth condition to choose, so a tap just toggles the
-              // tooth in or out of the treatment — same as before this
-              // modal grew per-tooth popovers.
-              if (options == null) {
-                setState(() {
-                  final bool wasSelected = _selectedTeeth.containsKey(tooth);
-                  _selectedTeeth.clear();
-                  if (!wasSelected) _selectedTeeth[tooth] = null;
-                });
-                return;
-              }
-              _closeToothPopover = _popupScopeKey.currentState!
-                  .anchoredPopover(
-                    anchorKey: anchorKey,
-                    preferredPosition: preferredPosition,
-                    builder: (context, close) => DSPopoverContent(
-                      title: tooth.fdiNumber,
-                      onClose: () {
-                        close();
-                        _closeToothPopover = null;
-                      },
-                      body: _ToothOptionList(
-                        options: options,
-                        onSelected: (label) {
-                          setState(() {
-                            _selectedTeeth.clear();
-                            _selectedTeeth[tooth] = label;
-                          });
-                          close();
-                          _closeToothPopover = null;
-                        },
-                      ),
-                    ),
-                  );
-            },
+                  final List<_ToothOption>? options = switch (_selectedOption) {
+                    final int i =>
+                      _toothOptionsByLabel[MockData.treatmentOptions[i].label],
+                    null => null,
+                  };
+                  // Dentures and Splint (and no option picked yet) have no
+                  // per-tooth condition to choose, so a tap just toggles the
+                  // tooth in or out of the treatment — same as before this
+                  // modal grew per-tooth popovers.
+                  if (options == null) {
+                    setState(() {
+                      final bool wasSelected = _selectedTeeth.containsKey(
+                        tooth,
+                      );
+                      _selectedTeeth.clear();
+                      if (!wasSelected) _selectedTeeth[tooth] = null;
+                    });
+                    return;
+                  }
+                  _closeToothPopover = _popupScopeKey.currentState!
+                      .anchoredPopover(
+                        anchorKey: anchorKey,
+                        preferredPosition: preferredPosition,
+                        builder: (context, close) => DSPopoverContent(
+                          title: tooth.fdiNumber,
+                          onClose: () {
+                            close();
+                            _closeToothPopover = null;
+                          },
+                          body: _ToothOptionList(
+                            options: options,
+                            onSelected: (label) {
+                              setState(() {
+                                _selectedTeeth.clear();
+                                _selectedTeeth[tooth] = label;
+                              });
+                              close();
+                              _closeToothPopover = null;
+                            },
+                          ),
+                        ),
+                      );
+                },
           ),
         ),
       ],
@@ -495,8 +507,7 @@ class _TreatmentOverview extends StatelessWidget {
                       child: Text(
                         selectedTeeth.isEmpty
                             ? 'Keine Zähne ausgewählt'
-                            : (selectedTeeth.entries.toList()
-                                  ..sort(
+                            : (selectedTeeth.entries.toList()..sort(
                                     (a, b) =>
                                         a.key.index.compareTo(b.key.index),
                                   ))
@@ -522,26 +533,42 @@ class _TreatmentOverview extends StatelessWidget {
 }
 
 /// The "Use a previous scan as a reference" modal: a scrollable gallery of
-/// [MockData.referenceScanGroups] beside a preview of whichever scan is
-/// picked — Figma node `40184-58978`.
+/// [patient]'s media, via [MockData.referenceScanGroupsForPatient], beside a
+/// preview of whichever scan is picked — Figma node `40184-58978`.
 ///
 /// Picking a reference is optional, per the modal's own title: "Continue"
-/// carries the flow forward whether or not a scan is selected.
+/// carries the flow forward whether or not a scan is selected. Only shown by
+/// [showTreatmentScanFlow] when [patient] actually has media to offer.
 class _SelectReferenceModal extends StatefulWidget {
-  const _SelectReferenceModal({required this.pop});
+  const _SelectReferenceModal({required this.pop, required this.patient});
 
   /// Closes the modal. `true` for "Continue", `false` for Cancel, the close
   /// button, or Escape.
   final Pop<bool> pop;
+
+  /// Whose media backs the gallery — see [MockData.referenceScanGroupsForPatient].
+  final Patient patient;
 
   @override
   State<_SelectReferenceModal> createState() => _SelectReferenceModalState();
 }
 
 class _SelectReferenceModalState extends State<_SelectReferenceModal> {
-  /// The picked scan, or null while none is — a valid, final state, since the
-  /// pick is optional.
-  ReferenceScan? _selected;
+  /// The gallery's groups, built once rather than freshly on every build:
+  /// [_selected] tracks its pick by identity (see [_buildGallery]'s
+  /// `DSMediaTile.selected`), which only stays stable across rebuilds if
+  /// the same [ReferenceScan] instances back the gallery throughout the
+  /// modal's lifetime.
+  late final List<ReferenceScanGroup> _groups =
+      MockData.referenceScanGroupsForPatient(widget.patient);
+
+  /// The picked scan, or null while none is — the pick is optional, but the
+  /// modal opens with the gallery's first scan preselected rather than
+  /// empty.
+  ///
+  /// [showTreatmentScanFlow] only shows this modal when [widget.patient] has
+  /// media, so [_groups] always has at least this one scan to preselect.
+  late ReferenceScan? _selected = _groups.first.scans.first;
 
   /// Which of the preview's view-angle toggle buttons is active.
   ///
@@ -593,7 +620,7 @@ class _SelectReferenceModalState extends State<_SelectReferenceModal> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final group in MockData.referenceScanGroups) ...[
+          for (final group in _groups) ...[
             Text(group.title, style: tokens.text.textBaseStrong),
             SizedBox(height: tokens.spacing.component.xs),
             Wrap(

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'device_scenario.dart';
 import 'models.dart';
 
 /// Fake data mirroring the sample names/IDs used in the Figma mockups.
@@ -42,6 +43,15 @@ class MockData {
     ),
   );
 
+  /// Patient Izzy Castaneda's (`p1`) single media item in the "Scan
+  /// inklusiv" scenario — see [patientById].
+  static const MediaItem _izzyStatusScan = MediaItem(
+    title: 'Status-Scan',
+    timestamp: '12.08.2025 um 09:39:43',
+    assetPath: 'assets/media/di_scan_1.png',
+    tag: 'DI · 3',
+  );
+
   static final List<Patient> patients = [
     Patient(
       id: 'p1',
@@ -49,7 +59,7 @@ class MockData {
       cardId: '1234567890',
       dateOfBirth: '05.22.1980',
       creationDate: '27.08.2025 · 16:00',
-      media: _randomMedia(),
+      media: const [],
     ),
     Patient(
       id: 'p2',
@@ -135,20 +145,6 @@ class MockData {
 
   static final List<Treatment> treatments = [
     Treatment(
-      id: 'AA00LY9',
-      title: 'Implantat',
-      patientId: 'p1',
-      patientName: 'Castaneda, Izzy',
-      service: 'Restauration',
-      teeth: '16 - Krone',
-      createdOn: '08/27/2024  9:12',
-      createdBy: 'Dr. Ada, Angelina',
-      lastActivity: '08/27/2024  9:12',
-      selectedTeeth: const [16],
-      activities: _sampleActivities,
-      media: _randomMedia(),
-    ),
-    Treatment(
       id: 'AA0204',
       title: 'Endo, Tim',
       patientId: 'p6',
@@ -210,14 +206,16 @@ class MockData {
   static const List<DeviceDetailItem> _scanModes = [
     DeviceDetailItem(
       title: 'Status-Scan',
-      subline: 'Für zahnärztliche Kontrolluntersuchungen und Scans vor '
+      subline:
+          'Für zahnärztliche Kontrolluntersuchungen und Scans vor '
           'chirurgischen Eingriffen verwenden.',
       assetPath: 'assets/scan_modes/status_scan.png',
       action: DeviceDetailAction.statusScan,
     ),
     DeviceDetailItem(
       title: 'Behandlungsscan',
-      subline: 'Zum Erstellen einer Behandlung und zum Scannen '
+      subline:
+          'Zum Erstellen einer Behandlung und zum Scannen '
           'behandlungsrelevanter Bereiche verwenden.',
       assetPath: 'assets/scan_modes/treatment_scan.png',
       action: DeviceDetailAction.treatmentScan,
@@ -280,27 +278,36 @@ class MockData {
     'assets/reference_scans/status_scan_bite_open.png',
   ];
 
-  /// The scans offered by the "Use a previous scan as a reference" modal,
-  /// grouped the way Figma node `40184-58978` groups them.
-  static const List<ReferenceScanGroup> referenceScanGroups = [
-    ReferenceScanGroup(
-      title: 'Neueste',
-      scans: [
-        ReferenceScan(
-          title: 'Status-Scan',
-          timestamp: '09.09.2025 um 14:34:13',
-          assetPath: 'assets/reference_scans/status_scan_thumbnail.png',
-          viewAssetPaths: _referenceScanViewAssetPaths,
-        ),
-        ReferenceScan(
-          title: 'Status-Scan',
-          timestamp: '02.05.2025 um 10:56:09',
-          assetPath: 'assets/reference_scans/status_scan_thumbnail.png',
-          viewAssetPaths: _referenceScanViewAssetPaths,
-        ),
-      ],
-    ),
-  ];
+  /// Builds the "Use a previous scan as a reference" modal's gallery,
+  /// grouped the way Figma node `40184-58978` groups them, with exactly one
+  /// tile per item in [patient]'s Media tab ([Patient.media]) — so the
+  /// gallery never offers more scans as a reference than the patient
+  /// actually has. Each tile keeps that media item's title, timestamp and
+  /// thumbnail, but reuses the shared [_referenceScanViewAssetPaths] for the
+  /// preview, since this prototype has only one captured set of angles.
+  ///
+  /// Empty when the patient has no media — callers should skip the modal
+  /// entirely in that case rather than show an empty gallery.
+  static List<ReferenceScanGroup> referenceScanGroupsForPatient(
+    Patient patient,
+  ) {
+    if (patient.media.isEmpty) return const [];
+
+    return [
+      ReferenceScanGroup(
+        title: 'Neueste',
+        scans: [
+          for (final item in patient.media)
+            ReferenceScan(
+              title: item.title,
+              timestamp: item.timestamp,
+              assetPath: item.assetPath,
+              viewAssetPaths: _referenceScanViewAssetPaths,
+            ),
+        ],
+      ),
+    ];
+  }
 
   /// The devices offered by the "Select device" modal, matching the Figma
   /// "Modal - Device selection" frame `40250-121538`: every device is
@@ -356,13 +363,14 @@ class MockData {
   /// The devices offered by the "Select device" modal in the "Notifikationen"
   /// scenario — see [DeviceScenario.notifications] — matching the Figma
   /// "Notifikationen" instance of node `40252-12717`: the same modal as
-  /// [devices], but with two of its scanners reporting an outdated
-  /// calibration or firmware instead of being in use or warning.
+  /// [devices], but with one of its scanners (Bruce) reporting an outdated
+  /// firmware instead of being in use or warning. Nemo is online in this
+  /// scenario.
   ///
-  /// Structured the same way as [devices] — two selectable devices the modal
-  /// opens on, followed by two non-selectable ones the "All devices" button
-  /// reveals — so `showCaptureScanModal` needs no scenario-specific layout
-  /// logic, only a different list.
+  /// Structured the same way as [devices] — the modal shows every device at
+  /// once, selectable ones alongside the one non-selectable card — so
+  /// `showCaptureScanModal` needs no scenario-specific layout logic, only a
+  /// different list.
   static const List<Device> notificationDevices = [
     Device(
       name: 'PC/Laptop Raum 4',
@@ -385,16 +393,10 @@ class MockData {
       subline: 'SN: 15552561',
       assetPath: 'assets/devices/primescan_2.png',
       batteryPercent: 81,
-      status: DeviceStatus.calibrationOutdated,
-      selectable: false,
-      // Placeholder copy: the Figma node names only the tag, not the
-      // explanatory text, so this is written to be plausible for the test
-      // session, not signed off.
-      statusDescription:
-          'Um die Qualität Ihrer Scans zu erhalten, ist eine neue '
-          'Kalibrierung erforderlich.',
-      statusLinkText: 'Geräteeinstellungen öffnen',
       thumbnailInset: 26,
+      detailSubline: 'SN: 15552561',
+      detailImageInset: 52,
+      detailItems: _scanModes,
     ),
     Device(
       name: 'Primescan 2 - Bruce',
@@ -411,8 +413,30 @@ class MockData {
     ),
   ];
 
-  static Patient? patientById(String id) =>
-      patients.where((p) => p.id == id).firstOrNull;
+  /// Looks up a patient by [id].
+  ///
+  /// Patient `p1` (Izzy Castaneda) has no fixed media in [patients] — her
+  /// media depends on which [DeviceScenario] the tester picked on
+  /// [StartMenuPage]: none in "Scan exklusiv" or "Szenario 4", one status
+  /// scan in "Scan inklusiv". Read fresh on every call, rather than baked
+  /// into [patients], so re-picking a scenario after returning to the start
+  /// menu is reflected immediately.
+  static Patient? patientById(String id) {
+    final patient = patients.where((p) => p.id == id).firstOrNull;
+    if (patient == null || patient.id != 'p1') return patient;
+
+    return Patient(
+      id: patient.id,
+      name: patient.name,
+      cardId: patient.cardId,
+      dateOfBirth: patient.dateOfBirth,
+      creationDate: patient.creationDate,
+      media: switch (DeviceScenarioState.current) {
+        DeviceScenario.exclusive || DeviceScenario.notifications => const [],
+        DeviceScenario.scans => const [_izzyStatusScan],
+      },
+    );
+  }
 
   static Treatment? treatmentById(String id) =>
       treatments.where((t) => t.id == id).firstOrNull;

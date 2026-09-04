@@ -9,17 +9,19 @@ import '../data/device_scenario.dart';
 /// [AppRoutes.start].
 ///
 /// Matches Figma node `40532-88315` ("Home"): the DS logo over a single
-/// [DSContainer] holding one [DSListTextItem] row per usability-test scenario
-/// this session covers.
+/// [DSContainer] holding one [DSListCustomItem] row per usability-test
+/// scenario this session covers.
 ///
-/// Both rows lead to the exact same dashboard ([AppRoutes.home]), from which
-/// the status/treatment-scan flow they describe is reachable via a patient's
-/// or treatment's "Capture scan" button — they differ only in which
-/// [DeviceScenario] that button's "Select device" modal ends up showing.
-/// Picking a row sets [DeviceScenarioState.current] before navigating, so
-/// `showCaptureScanModal` (see `lib/flows/capture_scan.dart`) can pick up the
-/// right device list without either row needing to carry it any further
-/// itself.
+/// The "Scan exklusiv", "Scan inklusiv" and "Szenario 4" rows lead to the
+/// exact same dashboard ([AppRoutes.home]) and the same patient/treatment
+/// pages — they differ only in which [DeviceScenario] the rest of the flow
+/// then reads: which device list a "Capture scan" button's "Select device"
+/// modal shows, and (for patient Izzy Castaneda specifically) which mock
+/// media [MockData.patientById] hands out. Picking one of those rows sets
+/// [DeviceScenarioState.current] before navigating, so those later screens
+/// can pick up the right data without the row needing to carry it any
+/// further itself. The remaining rows ("Report", "Anhang") are placeholders
+/// not wired to a scenario yet.
 class StartMenuPage extends StatelessWidget {
   /// Creates the scenario picker.
   const StartMenuPage({super.key});
@@ -71,53 +73,46 @@ class StartMenuPage extends StatelessWidget {
                   ),
                   SizedBox(height: tokens.spacing.layout.l),
                   DSContainer(
-                    child: DSList<DSListTextItem>(
+                    child: DSList<DSListCustomItem>(
                       // Unbounded ancestor (a `SingleChildScrollView`, so the
                       // whole card scrolls with the logo above it on short
                       // viewports) rather than the sliver-based scaffold the
                       // dashboard's lists sit in, so the list has to size
-                      // itself to its two rows instead of expecting a bounded
+                      // itself to its rows instead of expecting a bounded
                       // height to fill.
                       shrinkWrap: true,
                       items: [
-                        DSListTextItem(
-                          header: 'Scans',
-                          body: 'Die Nutzerschaft kann Status- und '
-                              'Treatment-Scans ohne Fehler durchführen.',
+                        DSListCustomItem(
+                          header: 'Scan exklusiv',
+                          body: const SizedBox.shrink(),
+                          onPressed: () => _openScenario(
+                            context,
+                            DeviceScenario.exclusive,
+                          ),
+                        ),
+                        DSListCustomItem(
+                          header: 'Scan inklusiv',
+                          body: const SizedBox.shrink(),
                           onPressed: () => _openScenario(
                             context,
                             DeviceScenario.scans,
                           ),
-                          actions: [
-                            DSAction(
-                              title: 'Öffnen',
-                              icon: DSIcons.chevronRight,
-                              onTrigger: () => _openScenario(
-                                context,
-                                DeviceScenario.scans,
-                              ),
-                            ),
-                          ],
                         ),
-                        DSListTextItem(
-                          header: 'Notifikationen',
-                          body: 'Bei der Auswahl der Scanner werden '
-                              'Notifikationen zu veralteten Kalibrierungen '
-                              'und Firmware Updates gezeigt.',
+                        DSListCustomItem(
+                          header: 'Szenario 4',
+                          body: const SizedBox.shrink(),
                           onPressed: () => _openScenario(
                             context,
                             DeviceScenario.notifications,
                           ),
-                          actions: [
-                            DSAction(
-                              title: 'Öffnen',
-                              icon: DSIcons.chevronRight,
-                              onTrigger: () => _openScenario(
-                                context,
-                                DeviceScenario.notifications,
-                              ),
-                            ),
-                          ],
+                        ),
+                        DSListCustomItem(
+                          header: 'Report',
+                          body: const SizedBox.shrink(),
+                        ),
+                        DSListCustomItem(
+                          header: 'Anhang',
+                          body: const SizedBox.shrink(),
                         ),
                       ],
                     ),

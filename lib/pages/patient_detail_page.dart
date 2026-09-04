@@ -5,6 +5,7 @@ import 'package:lightning_core_ui/lightning_core_ui.dart';
 import '../app_router.dart';
 import '../components/media_grid/media_grid.dart';
 import '../data/mock_data.dart';
+import '../data/models.dart';
 import '../flows/capture_scan.dart';
 import '../shell/app_shell.dart';
 
@@ -60,25 +61,42 @@ class PatientDetailPage extends StatelessWidget {
           subtitle: patient.dateOfBirth,
           onBackPressed: () => context.go(AppRoutes.patients),
           backButtonText: 'Patienten',
-          actions: _headerActions(context),
+          actions: _headerActions(context, patient),
           tabbedScrollableViews: [
             DSScrollableTabbedView(
               title: 'Medien',
               slivers: [
                 SliverToBoxAdapter(child: _MediaToolbar()),
                 SliverToBoxAdapter(child: _LayoutSGap()),
-                DSSliversContainer(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: MediaSectionHeading(
-                        label: 'Letzte 3 Monate',
-                        count: patient.media.length,
-                      ),
+                if (patient.media.isEmpty)
+                  SliverToBoxAdapter(
+                    child: DSEmptyState(
+                      size: DSEmptyStateSize.large,
+                      headline: 'Keine Mediendateien gefunden.',
+                      body: 'Alle Ihre Mediendateien werden hier angezeigt.',
+                      illustration: DSSpotIllustrations.media,
+                      actions: [
+                        DSButton.primary(
+                          buttonText: 'Medien hochladen',
+                          icon: DSIcons.upload,
+                          onPressed: () {},
+                        ),
+                      ],
                     ),
-                    SliverToBoxAdapter(child: _LayoutSGap()),
-                    MediaGridSliver(media: patient.media),
-                  ],
-                ),
+                  )
+                else
+                  DSSliversContainer(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: MediaSectionHeading(
+                          label: 'Letzte 3 Monate',
+                          count: patient.media.length,
+                        ),
+                      ),
+                      SliverToBoxAdapter(child: _LayoutSGap()),
+                      MediaGridSliver(media: patient.media),
+                    ],
+                  ),
               ],
             ),
             DSScrollableTabbedView(
@@ -88,7 +106,8 @@ class PatientDetailPage extends StatelessWidget {
                   child: DSEmptyState(
                     size: DSEmptyStateSize.large,
                     headline: 'Noch keine Bestellungen',
-                    body: 'Für diesen Patienten erstellte Bestellungen '
+                    body:
+                        'Für diesen Patienten erstellte Bestellungen '
                         'werden hier angezeigt.',
                     illustration: DSSpotIllustrations.orders,
                   ),
@@ -131,13 +150,25 @@ class PatientDetailPage extends StatelessWidget {
     );
   }
 
-  /// The page-header action buttons. All but "Capture scan" are visually
-  /// enabled but inert.
-  List<Widget> _headerActions(BuildContext context) => [
-    DSButton.secondary(
-      buttonText: 'Scan aufnehmen',
-      icon: DSIcons.deviceDSPrimescan,
-      onPressed: () => showCaptureScanModal(context),
+  /// The page-header action buttons. All but "Aufnehmen" > "Scan" are
+  /// visually enabled but inert.
+  List<Widget> _headerActions(BuildContext context, Patient patient) => [
+    DSActionsButton.secondary(
+      buttonText: 'Aufnehmen',
+      actions: [
+        [
+          DSAction(
+            title: 'Scan',
+            icon: DSIcons.deviceDSPrimescan,
+            onTrigger: () => showCaptureScanModal(context, patient: patient),
+          ),
+          DSAction(
+            title: 'X-Ray',
+            icon: DSIcons.deviceDSXRay,
+            onTrigger: () {},
+          ),
+        ],
+      ],
     ),
     DSActionsButton.secondary(
       buttonText: 'Erstellen',

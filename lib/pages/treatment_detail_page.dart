@@ -67,13 +67,29 @@ class TreatmentDetailPage extends StatelessWidget {
           backButtonText: treatment.patientName,
           onBackPressed: goToPatient,
           actions: [
-            // "Capture scan" opens the device-selection modal; every other
-            // header action is inert in this click-through prototype.
-            DSButton.secondary(
-              buttonText: 'Scan aufnehmen',
-              icon: DSIcons.deviceDSPrimescan,
-              onPressed: () =>
-                  showCaptureScanModal(context, fromTreatmentDetail: true),
+            // "Aufnehmen" > "Scan" opens the device-selection modal;
+            // every other header action is inert in this click-through
+            // prototype.
+            DSActionsButton.secondary(
+              buttonText: 'Aufnehmen',
+              actions: [
+                [
+                  DSAction(
+                    title: 'Scan',
+                    icon: DSIcons.deviceDSPrimescan,
+                    onTrigger: () => showCaptureScanModal(
+                      context,
+                      patient: MockData.patientById(treatment.patientId),
+                      fromTreatmentDetail: true,
+                    ),
+                  ),
+                  DSAction(
+                    title: 'X-Ray',
+                    icon: DSIcons.deviceDSXRay,
+                    onTrigger: () {},
+                  ),
+                ],
+              ],
             ),
             DSButton.secondary(
               buttonText: 'Erstellen',
@@ -129,7 +145,8 @@ class TreatmentDetailPage extends StatelessWidget {
                       child: DSEmptyState(
                         size: DSEmptyStateSize.large,
                         headline: 'Noch keine Bestellungen',
-                        body: 'Für diese Behandlung aufgegebene Bestellungen '
+                        body:
+                            'Für diese Behandlung aufgegebene Bestellungen '
                             'werden hier angezeigt.',
                       ),
                     ),
@@ -147,7 +164,8 @@ class TreatmentDetailPage extends StatelessWidget {
                       child: DSEmptyState(
                         size: DSEmptyStateSize.large,
                         headline: 'Noch keine Fertigungsdaten',
-                        body: 'Fertigungsaufträge für diese Behandlung '
+                        body:
+                            'Fertigungsaufträge für diese Behandlung '
                             'werden hier angezeigt.',
                       ),
                     ),
@@ -255,7 +273,8 @@ class _MediaTabContent extends StatelessWidget {
         child: DSEmptyState(
           size: DSEmptyStateSize.large,
           headline: 'Noch keine Medien',
-          body: 'Für diese Behandlung erfasste Scans und Bilder werden '
+          body:
+              'Für diese Behandlung erfasste Scans und Bilder werden '
               'hier angezeigt.',
         ),
       );
@@ -271,9 +290,7 @@ class _MediaTabContent extends StatelessWidget {
           SliverToBoxAdapter(
             child: MediaSectionHeading(label: 'Medien', count: media.length),
           ),
-          SliverToBoxAdapter(
-            child: SizedBox(height: tokens.spacing.layout.s),
-          ),
+          SliverToBoxAdapter(child: SizedBox(height: tokens.spacing.layout.s)),
           MediaGridSliver(media: media),
         ],
       ),
@@ -314,29 +331,30 @@ class _QuickViewPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DSContainer(
-        child: SizedBox(
-          height: _quickViewPanelHeight,
-          child: DSTabbedViews(
-            tabbedViews: [
-              DSTabbedView(
-                title: 'Aktivitäten',
-                child: _ActivitiesTimeline(activities: treatment.activities),
-              ),
-              DSTabbedView(
-                title: 'Notizen',
-                child: const SingleChildScrollView(
-                  child: DSEmptyState(
-                    size: DSEmptyStateSize.small,
-                    headline: 'Noch keine Notizen',
-                    body: 'Zu dieser Behandlung hinzugefügte Notizen werden '
-                        'hier angezeigt.',
-                  ),
-                ),
-              ),
-            ],
+    child: SizedBox(
+      height: _quickViewPanelHeight,
+      child: DSTabbedViews(
+        tabbedViews: [
+          DSTabbedView(
+            title: 'Aktivitäten',
+            child: _ActivitiesTimeline(activities: treatment.activities),
           ),
-        ),
-      );
+          DSTabbedView(
+            title: 'Notizen',
+            child: const SingleChildScrollView(
+              child: DSEmptyState(
+                size: DSEmptyStateSize.small,
+                headline: 'Noch keine Notizen',
+                body:
+                    'Zu dieser Behandlung hinzugefügte Notizen werden '
+                    'hier angezeigt.',
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// A vertical timeline of [ActivityEntry]s.
@@ -362,8 +380,7 @@ class _ActivitiesTimeline extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.symmetric(vertical: tokens.spacing.component.m),
       itemCount: activities.length,
-      separatorBuilder: (_, _) =>
-          SizedBox(height: tokens.spacing.component.m),
+      separatorBuilder: (_, _) => SizedBox(height: tokens.spacing.component.m),
       itemBuilder: (_, index) {
         final activity = activities[index];
         // `IntrinsicHeight` gives this Row a bounded height (the natural
@@ -399,8 +416,9 @@ class _ActivitiesTimeline extends StatelessWidget {
                     SizedBox(height: tokens.spacing.component.xxs),
                     Text(
                       '${activity.author} · ${activity.timestamp}',
-                      style: tokens.text.textSm
-                          .copyWith(color: tokens.text.subdued),
+                      style: tokens.text.textSm.copyWith(
+                        color: tokens.text.subdued,
+                      ),
                     ),
                   ],
                 ),
@@ -525,7 +543,8 @@ class _ImplantologySection extends StatelessWidget {
           value: 0,
           groupValue: 0,
           label: 'CBCT- und DI-Scan hinzufügen',
-          info: 'Durch Hinzufügen eines DI-Scans können Sie eine '
+          info:
+              'Durch Hinzufügen eines DI-Scans können Sie eine '
               'chirurgische Schablone erstellen.',
           maxLines: 2,
           // Inert: the single option is always selected.
@@ -583,10 +602,7 @@ class _ScanDropSlot extends StatelessWidget {
         SizedBox(height: tokens.spacing.component.s),
         // Inert: `onPressed` is supplied so the widget does not open the
         // browser's file picker, and `onDrop` intentionally does nothing.
-        DSDropzoneDedicated(
-          onDrop: (_, _) {},
-          onPressed: () {},
-        ),
+        DSDropzoneDedicated(onDrop: (_, _) {}, onPressed: () {}),
       ],
     );
   }
