@@ -27,7 +27,15 @@ class StartMenuPage extends StatelessWidget {
   /// Max width of the logo/card column, per the Figma frame.
   static const double _maxWidth = 400;
 
-  /// Height of the DS logo, per the Figma node.
+  /// Size of the DS logo, per the Figma node.
+  ///
+  /// The packaged asset's canvas has transparent padding to the right of
+  /// the wordmark (its intrinsic aspect ratio is ~6.2:1, not the ~3.3:1 the
+  /// visible logo mark actually has), so sizing it by [_logoHeight] alone
+  /// renders it far wider than the design and shifts the visible mark left
+  /// of center. Cropping to both dimensions below via [FittedBox.fitHeight]
+  /// keeps the mark itself at the Figma-specified size.
+  static const double _logoWidth = 158;
   static const double _logoHeight = 48;
 
   @override
@@ -46,10 +54,19 @@ class StartMenuPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Center(
-                    child: Image.asset(
-                      'assets/images/Logo-DS-light-default.png',
-                      package: 'lightning_core_ui',
-                      height: _logoHeight,
+                    child: ClipRect(
+                      child: SizedBox(
+                        width: _logoWidth,
+                        height: _logoHeight,
+                        child: FittedBox(
+                          fit: BoxFit.fitHeight,
+                          alignment: Alignment.centerLeft,
+                          child: Image.asset(
+                            'assets/images/Logo-DS-light-default.png',
+                            package: 'lightning_core_ui',
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(height: tokens.spacing.layout.l),
