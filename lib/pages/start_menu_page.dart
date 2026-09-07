@@ -4,6 +4,7 @@ import 'package:lightning_core_ui/lightning_core_ui.dart';
 
 import '../app_router.dart';
 import '../data/device_scenario.dart';
+import '../reports/open_report.dart';
 
 /// The screen the prototype opens on once unlocked, shown at
 /// [AppRoutes.start].
@@ -20,8 +21,10 @@ import '../data/device_scenario.dart';
 /// media [MockData.patientById] hands out. Picking one of those rows sets
 /// [DeviceScenarioState.current] before navigating, so those later screens
 /// can pick up the right data without the row needing to carry it any
-/// further itself. The remaining rows ("Report", "Anhang") are placeholders
-/// not wired to a scenario yet.
+/// further itself. "Report" instead opens the troubleshoot report PDF in a
+/// new browser tab via [OpenReport.open]. "Anhang" likewise opens the
+/// troubleshooting-notification click-through in a new tab via
+/// [OpenAttachment.open].
 class StartMenuPage extends StatelessWidget {
   /// Creates the scenario picker.
   const StartMenuPage({super.key});
@@ -109,10 +112,12 @@ class StartMenuPage extends StatelessWidget {
                         DSListCustomItem(
                           header: 'Report',
                           body: const SizedBox.shrink(),
+                          onPressed: OpenReport.open,
                         ),
                         DSListCustomItem(
                           header: 'Anhang',
                           body: const SizedBox.shrink(),
+                          onPressed: OpenAttachment.open,
                         ),
                       ],
                     ),

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Troubleshooting notification</title>
+<style>
+  html, body {
+    margin: 0;
+    background: #1c1c1e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  img {
+    max-width: 100vw;
+    max-height: 100vh;
+    display: block;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <!--
+    Two-state click-through: tapping anywhere on image 1 advances to image 2.
+    On image 2, only the top-left quarter (where the firmware-upgrade info
+    box sits) goes back to image 1; the rest of image 2 is inert.
+  -->
+  <img id="shot" src="troubleshooting-notification-1.png" alt="Finish scan dialog" />
+  <script>
+    const img = document.getElementById('shot');
+    let onFirst = true;
+
+    img.addEventListener('click', (event) => {
+      if (onFirst) {
+        img.src = 'troubleshooting-notification-2.png';
+        onFirst = false;
+        return;
+      }
+
+      const rect = img.getBoundingClientRect();
+      const xFraction = (event.clientX - rect.left) / rect.width;
+      const yFraction = (event.clientY - rect.top) / rect.height;
+      const inTopLeftQuarter = xFraction <= 0.25 && yFraction <= 0.25;
+
+      if (inTopLeftQuarter) {
+        img.src = 'troubleshooting-notification-1.png';
+        onFirst = true;
+      }
+    });
+  </script>
+</body>
+</html>
