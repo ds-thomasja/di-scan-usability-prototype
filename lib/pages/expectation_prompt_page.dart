@@ -14,7 +14,7 @@ import '../restart/prototype_restart.dart';
 /// would expect to happen next, rather than handing them to another
 /// prototype window.
 class ExpectationPromptPage extends StatelessWidget {
-  /// Creates the "What would you expect?" prompt.
+  /// Creates the "Was würden Sie erwarten?" prompt.
   const ExpectationPromptPage({super.key});
 
   /// Side margin of the copy block, matching the "Switch prototype" page.
@@ -43,7 +43,7 @@ class ExpectationPromptPage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: _copyMargin),
                 child: DSText(
-                  'What would you expect?',
+                  'Was würden Sie erwarten?',
                   style: tokens.text.heading5xl,
                   textAlign: TextAlign.center,
                   maxLines: null,
