@@ -111,6 +111,11 @@ enum DeviceDetailAction {
   /// [statusScan] ends on — with an extra "Fetch scan data" step, since this
   /// flow actually has scan data belonging to the new treatment to fetch.
   treatmentScan,
+
+  /// Opens the "What would you expect?" prompt from a non-selectable
+  /// device's notification link (e.g. "Jetzt aktualisieren" on the
+  /// outdated-firmware device in the "Notifikationen" scenario).
+  notificationLink,
 }
 
 /// One tile of the "New treatment" modal's "Treatment option" picker.

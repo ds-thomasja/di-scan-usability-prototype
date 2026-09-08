@@ -5,6 +5,7 @@ import 'auth/auth_gate.dart';
 import 'auth/auth_state.dart';
 import 'pages/collaboration_page.dart';
 import 'pages/equipment_page.dart';
+import 'pages/expectation_prompt_page.dart';
 import 'pages/files_page.dart';
 import 'pages/home_page.dart';
 import 'pages/jobs_page.dart';
@@ -65,6 +66,10 @@ abstract final class AppRoutes {
 
   /// The signpost the status-scan flow ends on.
   static const String switchPrototype = '/switch-prototype';
+
+  /// The "What would you expect?" prompt the outdated-firmware device card's
+  /// "Jetzt aktualisieren" link leads to.
+  static const String expectationPrompt = '/expectation-prompt';
 
   /// Builds the concrete path for a patient detail page.
   static String patient(String id) => '/patients/$id';
@@ -182,6 +187,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.switchPrototype,
       name: 'switchPrototype',
       builder: (context, state) => const SwitchPrototypePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.expectationPrompt,
+      name: 'expectationPrompt',
+      builder: (context, state) => const ExpectationPromptPage(),
     ),
   ],
 );

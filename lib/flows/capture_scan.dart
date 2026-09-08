@@ -84,6 +84,10 @@ Future<void> showCaptureScanModal(
         patient: patient,
         skipNewTreatment: fromTreatmentDetail,
       );
+    // The outdated-firmware card's "Jetzt aktualisieren" link — see
+    // [_toNotification].
+    case DeviceDetailAction.notificationLink:
+      context.push(AppRoutes.expectationPrompt);
   }
 }
 
@@ -131,7 +135,9 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
   /// detail view rather than closing the modal — unless [_startsTreatmentScan]
   /// says this pick should skip straight to the treatment-scan flow instead.
   Widget _buildSelectView() => DeviceModal.selectDevice(
-    devices: [for (final device in _devices) _toModalDevice(device)],
+    devices: [
+      for (final device in _devices) _toModalDevice(device, pop: widget.pop),
+    ],
     // The Figma frame shows no Confirm button: one tap picks the device.
     selectable: false,
     onClose: widget.pop,
@@ -199,39 +205,47 @@ class _CaptureScanModalState extends State<_CaptureScanModal> {
 }
 
 /// Maps a prototype [Device] onto the shape [DeviceModal] consumes.
-DeviceModalDevice _toModalDevice(Device device) => DeviceModalDevice(
-  name: device.name,
-  subline: device.subline,
-  batteryPercent: device.batteryPercent,
-  status: _toCardStatus(device.status),
-  statusLabel: device.statusLabel,
-  selectable: device.selectable,
-  notification: _toNotification(device),
-  thumbnail: Padding(
-    padding: EdgeInsets.all(device.thumbnailInset),
-    child: Image.asset(device.assetPath, fit: BoxFit.contain),
-  ),
-);
+///
+/// [pop] closes this modal; forwarded to [_toNotification] so its link can
+/// hand the [showCaptureScanModal] caller [DeviceDetailAction.notificationLink].
+DeviceModalDevice _toModalDevice(
+  Device device, {
+  required Pop<DeviceDetailAction?> pop,
+}) =>
+    DeviceModalDevice(
+      name: device.name,
+      subline: device.subline,
+      batteryPercent: device.batteryPercent,
+      status: _toCardStatus(device.status),
+      statusLabel: device.statusLabel,
+      selectable: device.selectable,
+      notification: _toNotification(device, pop),
+      thumbnail: Padding(
+        padding: EdgeInsets.all(device.thumbnailInset),
+        child: Image.asset(device.assetPath, fit: BoxFit.contain),
+      ),
+    );
 
 /// Builds the in-card notification for a device that cannot be picked.
 ///
 /// Returns null for a selectable device, and for a non-selectable one with
 /// nothing to say — which leaves its card inert rather than tappable to no
-/// effect.
-DeviceCardNotification? _toNotification(Device device) {
+/// effect. Its link, when present, closes the modal via [pop] and hands
+/// [showCaptureScanModal] [DeviceDetailAction.notificationLink], which pushes
+/// [AppRoutes.expectationPrompt].
+DeviceCardNotification? _toNotification(
+  Device device,
+  Pop<DeviceDetailAction?> pop,
+) {
   final description = device.statusDescription;
   if (device.selectable || description == null) return null;
 
   return DeviceCardNotification(
     description: description,
     linkText: device.statusLinkText,
-    // A no-op rather than null: DSLinkWidget renders a link without a callback
-    // in its disabled style, and the Figma node shows a live `text/interactive`
-    // link. There is nothing behind it in this click-through prototype, so the
-    // tap is swallowed — the link is a dead end that looks like the design,
-    // rather than a live-looking one that navigates or a grey one that reads
-    // as broken.
-    onLinkPressed: () {},
+    onLinkPressed: device.statusLinkText == null
+        ? null
+        : () => pop(DeviceDetailAction.notificationLink),
   );
 }
 

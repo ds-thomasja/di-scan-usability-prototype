@@ -542,10 +542,28 @@ class _DeviceModalState extends State<DeviceModal> {
   /// the section rather than stacking two of them.
   int? _openNotificationIndex;
 
+  /// One key per device row, so [_toggleNotification] can find a card's
+  /// render object again once its notification has finished opening — see
+  /// [_scrollOpenNotificationIntoView]. Created lazily and never removed:
+  /// stale keys for a device the "All devices" toggle has since dropped are
+  /// harmless, since nothing looks them up by then.
+  final Map<int, GlobalKey> _cardKeys = {};
+
+  /// The scroll view's own controller, so [_scrollOpenNotificationIntoView]
+  /// can nudge it once a card's notification has grown the body taller than
+  /// the viewport.
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initiallySelectedIndex;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -566,9 +584,41 @@ class _DeviceModalState extends State<DeviceModal> {
   }
 
   /// Opens [index]'s notification section, or closes it if already open.
-  void _toggleNotification(int index) => setState(() {
-        _openNotificationIndex = _openNotificationIndex == index ? null : index;
-      });
+  ///
+  /// Opening one grows its card via the [deviceRevealDuration] `AnimatedSize`
+  /// in [DeviceCard]; once that finishes, [_scrollOpenNotificationIntoView]
+  /// nudges the body so the now-taller card is not left cut off by the
+  /// viewport it was scrolled to before it opened.
+  void _toggleNotification(int index) {
+    final opening = _openNotificationIndex != index;
+    setState(() {
+      _openNotificationIndex = opening ? index : null;
+    });
+    if (opening) _scrollOpenNotificationIntoView(index);
+  }
+
+  /// Waits out the card's own opening animation, then scrolls just far enough
+  /// to bring [index]'s card fully into view.
+  ///
+  /// [ScrollPositionAlignmentPolicy.keepVisibleAtEnd] only ever scrolls
+  /// forward, and only as far as revealing the card's bottom edge requires —
+  /// so a card that was already fully visible (or one whose top has already
+  /// scrolled past, which this modal cannot bring back without hiding the
+  /// notification the tap just opened) is left alone.
+  void _scrollOpenNotificationIntoView(int index) {
+    Future.delayed(deviceRevealDuration, () {
+      if (!mounted) return;
+      final renderObject = _cardKeys[index]?.currentContext?.findRenderObject();
+      if (renderObject == null) return;
+      _scrollController.position.ensureVisible(
+        renderObject,
+        alignment: 1,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -580,6 +630,7 @@ class _DeviceModalState extends State<DeviceModal> {
       variant: widget.variant,
       title: widget.title,
       onClose: widget.onClose,
+      scrollController: _scrollController,
       // The one difference between the two modes' chrome, and the whole reason
       // this surface is hand-composed: see [_DeviceModalSurface].
       bodyTopGap: details == null
@@ -840,6 +891,7 @@ class _DeviceModalState extends State<DeviceModal> {
     }
 
     return DeviceCard(
+      key: _cardKeys.putIfAbsent(index, () => GlobalKey()),
       width: double.infinity,
       name: device.name,
       subline: device.subline,
@@ -1115,6 +1167,7 @@ class _DeviceModalSurface extends StatelessWidget {
     required this.bodyTopGap,
     required this.body,
     required this.buttons,
+    required this.scrollController,
   });
 
   final DeviceModalThemeData theme;
@@ -1127,6 +1180,11 @@ class _DeviceModalSurface extends StatelessWidget {
 
   final Widget body;
   final List<Widget> buttons;
+
+  /// Drives the body's [DSCustomScrollView], so a card whose notification has
+  /// just opened can be scrolled back into view; see
+  /// [_DeviceModalState._scrollOpenNotificationIntoView].
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -1206,6 +1264,7 @@ class _DeviceModalSurface extends StatelessWidget {
                 Flexible(
                   fit: fullScreen ? FlexFit.tight : FlexFit.loose,
                   child: DSCustomScrollView(
+                    controller: scrollController,
                     // Sizes the viewport to its content up to the available
                     // height, instead of always filling it. This is what
                     // DSModalDialog gets for free from SingleChildScrollView and
