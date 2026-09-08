@@ -17,15 +17,16 @@ abstract final class OpenReport {
   }
 }
 
-/// Opens the troubleshooting-notification attachment in a new browser tab.
+/// Opens the troubleshooting-notification attachment in the same browser tab.
 abstract final class OpenAttachment {
   /// The click-through HTML page's path, served as-is from `web/documents/`
   /// alongside the two screenshots it swaps between, for the same
   /// base-href reasons as [OpenReport._path].
   static const String _path = 'documents/troubleshooting_notification.html';
 
-  /// Opens the attachment in a new tab, leaving the prototype where it was.
+  /// Navigates to the attachment in the current tab; the page's own
+  /// top-left tap zone navigates back via browser history.
   static void open() {
-    web.window.open(_path, '_blank');
+    web.window.open(_path, '_self');
   }
 }

@@ -23,8 +23,9 @@
 <body>
   <!--
     Two-state click-through: tapping anywhere on image 1 advances to image 2.
-    On image 2, only the top-left quarter (where the firmware-upgrade info
-    box sits) goes back to image 1; the rest of image 2 is inert.
+    On image 2, the top-left quarter goes back to the prototype's start page
+    (via browser history, since this page now opens in the same tab), and
+    the top-right quarter goes back to image 1; the rest of image 2 is inert.
   -->
   <img id="shot" src="troubleshooting-notification-1.png" alt="Finish scan dialog" />
   <script>
@@ -42,8 +43,11 @@
       const xFraction = (event.clientX - rect.left) / rect.width;
       const yFraction = (event.clientY - rect.top) / rect.height;
       const inTopLeftQuarter = xFraction <= 0.25 && yFraction <= 0.25;
+      const inTopRightQuarter = xFraction >= 0.75 && yFraction <= 0.25;
 
       if (inTopLeftQuarter) {
+        window.history.back();
+      } else if (inTopRightQuarter) {
         img.src = 'troubleshooting-notification-1.png';
         onFirst = true;
       }
