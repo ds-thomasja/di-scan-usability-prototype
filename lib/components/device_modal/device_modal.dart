@@ -242,7 +242,9 @@ class DeviceModalProgress {
 ///   exactly `modal.width.responsiveLayoutXl.small`, i.e. what
 ///   [DSModalDialogVariant.small] resolves to at the extra-large form factor.
 ///   [variant] therefore defaults to [DSModalDialogVariant.small], reproducing
-///   the mock at that form factor and narrowing on smaller ones (366/384/328).
+///   the mock at that form factor. [DeviceModalThemeData.smallVariantWidth]
+///   pins the large form factor to the same 486 (rather than the DS default's
+///   narrower 366), and narrows only on medium/small (384/328).
 /// - Elevation: the Figma node mentions an elevation shadow. None is applied,
 ///   matching [DSModalDialog], which decorates its surface with a color and a
 ///   radius only. Keeping DS parity here means the *only* intended visual
@@ -943,7 +945,10 @@ class DeviceModalThemeData {
         smallVariantWidth = DSResponsiveProperty.resolveTo(
           s: d.modal.width.responsiveLayoutS.small,
           m: d.modal.width.responsiveLayoutM.small,
-          l: d.modal.width.responsiveLayoutL.small,
+          // L matches XL here: DeviceModal (the only user of this variant)
+          // keeps the Figma-fixed 486 width instead of the DS default's
+          // narrower 366 on the L form factor.
+          l: d.modal.width.responsiveLayoutXl.small,
           xl: d.modal.width.responsiveLayoutXl.small,
         ),
         mediumVariantWidth = DSResponsiveProperty.resolveTo(
